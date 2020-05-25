@@ -292,6 +292,7 @@ class Hero extends ActiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "hero_runs_left");
+		hero = this;
 	}
 
 	animation() 
