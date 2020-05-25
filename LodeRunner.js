@@ -93,6 +93,16 @@ class PassiveActor extends Actor
 	canEat(){
 		return this.eatable;
 	}
+
+	moveInto(dx,dy)
+	{
+		return true;
+	}
+
+	moveOutFrom(dx,dy)
+	{
+		return true;
+	}
 }
 
 class ActiveActor extends Actor 
@@ -115,6 +125,21 @@ class ActiveActor extends Actor
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
 	animation() {}
+
+	moveInMatrix(dx, dy)
+	{
+		control.worldActive[this.x][this.y] = empty;
+		control.worldActive[this.x + dx][this.y + dy] = this;
+	}
+
+	applyGravity()
+	{
+		if(control.worldActive[this.x][this.y] === empty 
+			&& control.world[this.x][this.y] === empty 
+			&& control.worldActive[this.x][(this.y + 1)] === empty 
+			&& control.world[this.x][(this.y + 1)] === empty)
+			super.move(0,1);
+	}
 	
 	// ESTE METODO E PARA VERIFICAR SE O PROXIMO MOVIMENTO E POSSIVEL
 	checkMove(dx,dy)
@@ -206,6 +231,17 @@ class Brick extends PassiveActor
 		super.setOverlap(true);
 		this.destroyed = true;
 	}
+
+	moveInto(dx, dy)
+	{
+		if(!this.Overlap)
+			return false;
+		
+		if(dx == 0 && dy == -1)
+			return false;
+		
+		return true;
+	}	
 }
 
 class Chimney extends PassiveActor 
@@ -215,7 +251,13 @@ class Chimney extends PassiveActor
 		super(x, y, "chimney",false); 
 		this.setOverlap(true);
 	}
-	
+
+	moveInto(dx, dy)
+	{
+		if(dx != 0 && dy != 1)
+			return false;
+		return true;
+	}
 }
 
 class Empty extends PassiveActor 
@@ -280,6 +322,18 @@ class Rope extends PassiveActor
 		super(x, y, "rope",false); 
 		this.setOverlap(true);
 	}
+
+	moveInto(dx, dy)
+	{
+		if(dx == 0 && dy == -1)
+			return false;
+		return true;
+	}
+
+	moveOutFrom(dx,dy)
+	{
+		return this.moveInto(dx,dy);
+	}
 }
 
 class Stone extends PassiveActor 
@@ -288,6 +342,18 @@ class Stone extends PassiveActor
 	{
 		super(x, y, "stone"); 
 		this.setOverlap(true);
+	}
+
+	moveInto(dx, dy)
+	{
+		if( dx == 0 && dy != 0)
+			return false;
+		return true;
+	}
+	
+	moveOutFrom(dx,dy)
+	{
+		return this.moveInto(dx,dy);
 	}
 }
 
