@@ -299,8 +299,19 @@ class Hero extends ActiveActor
 		let k = control.getKey();
         if( k == ' ' ) { alert('SHOOT') ; return; }
         if( k == null ) return;
-        let [dx, dy] = k;
+		let [dx, dy] = k;
+		
+		if(dx===-1&&dy===0){ // moving left
+			this.imageName = 'hero_runs_left';
+		} else if (dx===1&&dy===0){ //moving right
+			this.imageName = 'hero_runs_right';
+		}else if ([dx,dy]===[0,-1]){ //moving up
+			//this.imageName = 'hero_runs_up';
+		} else if ([dx,dy]===[0,1]){ //moving down
+			//this.imageName = 'hero_runs_down';
+		}
 		super.move(dx,dy);
+		
 	}
 }
 
