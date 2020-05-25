@@ -71,11 +71,11 @@ class Actor
 class PassiveActor extends Actor 
 {
 
-	constructor(x,y,ImageName)
+	constructor(x,y,ImageName, eatable)
 	{
 		super(x,y,ImageName);
 		this.destroyed = false;
-		
+		this.eatable = eatable;
 	}
 
 	show() 
@@ -88,6 +88,10 @@ class PassiveActor extends Actor
 	{
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
+	}
+
+	canEat(){
+		return this.eatable;
 	}
 }
 
@@ -184,7 +188,7 @@ class Brick extends PassiveActor
 
 	constructor(x, y) 
 	{ 
-		super(x, y, "brick"); 
+		super(x, y, "brick",false); 
 		super.setDestroyable(true);
 		this.destroyed = false;
 	}
@@ -208,7 +212,7 @@ class Chimney extends PassiveActor
 {
 	constructor(x, y) 
 	{ 
-		super(x, y, "chimney"); 
+		super(x, y, "chimney",false); 
 		this.setOverlap(true);
 	}
 	
@@ -218,7 +222,7 @@ class Empty extends PassiveActor
 {
 	constructor() 
 	{ 
-	super(-1, -1, "empty"); 
+	super(-1, -1, "empty",false); 
 	this.setOverlap(true);
 	}
 	show() {}
@@ -229,7 +233,7 @@ class Gold extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "gold");
+		super(x, y, "gold",true);
 	}
 	
 }
@@ -237,7 +241,7 @@ class Gold extends PassiveActor
 class Invalid extends PassiveActor 
 {
 
-	constructor(x, y) { super(x, y, "invalid"); }
+	constructor(x, y) { super(x, y, "invalid",false); }
 }
 
 class Ladder extends PassiveActor 
@@ -245,7 +249,7 @@ class Ladder extends PassiveActor
 
 	constructor(x, y) 
 	{
-		super(x, y, "ladder");
+		super(x, y, "ladder",false);
 		this.visible = false;
 		this.setOverlap(true);
 	}
@@ -273,7 +277,7 @@ class Rope extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "rope"); 
+		super(x, y, "rope",false); 
 		this.setOverlap(true);
 	}
 }
@@ -281,7 +285,7 @@ class Rope extends PassiveActor
 class Stone extends PassiveActor 
 {
 	constructor(x, y) 
-	{ 
+	{
 		super(x, y, "stone"); 
 		this.setOverlap(true);
 	}
@@ -309,6 +313,14 @@ class Hero extends ActiveActor
 			//this.imageName = 'hero_runs_up';
 		} else if ([dx,dy]===[0,1]){ //moving down
 			//this.imageName = 'hero_runs_down';
+		}
+		if(control.worldActive[this.x+1][this.y].canEat()){
+			control.worldActive[this.x][this.y] = empty;
+		}
+		console.log(control.worldActive[this.x+1][this.y].canEat() +" jjOUROoo "+ this.x, this.y);
+		console.log(control.worldActive[18][this.y].canEat() +" jjOUROoo "+ this.x);
+		if(control.worldActive[this.x + 1][this.y] instanceof Gold ){
+			console.log("OUROoo");
 		}
 		super.move(dx,dy);
 		
