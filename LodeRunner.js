@@ -25,8 +25,11 @@ let empty, hero, control;
 
 // ACTORS
 
-class Actor {
-    constructor(x, y, imageName) {
+class Actor 
+{
+
+	constructor(x, y, imageName) 
+	{
 		this.x = x;
 		this.y = y;
 		this.imageName = imageName;
@@ -34,21 +37,26 @@ class Actor {
 		this.destroyable = false;
 		this.overlap = false;
 	}
-	draw(x, y) {
+
+	draw(x, y) 
+	{
 		control.ctx.drawImage(GameImages[this.imageName],
 				x * ACTOR_PIXELS_X, y* ACTOR_PIXELS_Y);
 	}
 
-    move(dx, dy) {
+	move(dx, dy) 
+	{
 		this.hide();
 		this.x += dx;
 		this.y += dy;
 		this.show();
 	}
+
 	setDestroyable(bool)
 	{
 		this.destroyable = bool;
 	}
+
 	setOverlap(bool)
 	{
 		this.overlap = bool;
@@ -56,81 +64,116 @@ class Actor {
 	
 }
 
-class PassiveActor extends Actor {
+class PassiveActor extends Actor 
+{
 
 	constructor(x,y,ImageName)
 	{
 		super(x,y,ImageName);
 	}
-	show() {
+
+	show() 
+	{
 		control.world[this.x][this.y] = this;
 		this.draw(this.x, this.y);
 	}
-	hide() {
+
+	hide() 
+	{
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
 }
 
-class ActiveActor extends Actor {
-    constructor(x, y, imageName) {
+class ActiveActor extends Actor 
+{
+
+	constructor(x, y, imageName) 
+	{
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
 		this.falling = true;
 	}
-	show() {
+	show() 
+	{
 		control.worldActive[this.x][this.y] = this;
 		this.draw(this.x, this.y);
 	}
-	hide() {
+	hide() 
+	{
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-	animation() {
-	}
-	static checkMove(x,y)
+	animation() {}
+	
+	checkMove(a,b)
 	{
-		return hasGround(y + 1);
+		let e = a;
+		e++;
+		return this.hasGround((b + 1));
 	}
+
 	hasGround(y)
 	{
-		if(y > WORLD_HEIGHT){
+		if(y > WORLD_HEIGHT)
+		{
 			alert("LOSTGAME");
+		}
+		else
+		{
+			if(control.worldActive[this.x][this.y] === Empty.constructor)
+				if(control.worldActive[this.x][below] === Empty.constructor)
+					return false;
+			else
+			{
+				if(control.worldActive[this.x][below].overlap)
+					return false;
+			}
 		}
 		//if(control.worldActive[this.x][this.y])
 		console.log(y);
 		return true;
 	} 
 
-	move(dx, dy) {
-		checkMove((this.x + dx), (this.y+ dy));
+	move(dx, dy) 
+	{
+		let nextX = (this.x + dx);
+		let nextY = (this.y + dy);
+		this.checkMove(nextX, nextY);
 		super.move(dx,dy);
 		console.log(this.y);
 	}
 
 }
 
-class Brick extends PassiveActor {
+class Brick extends PassiveActor 
+{
+
 	constructor(x, y) 
 	{ 
 		super(x, y, "brick"); 
 		super.setDestroyable(true);
 		this.destroyed = false;
 	}
-	show() {
+
+	show() 
+	{
 		super.show();
 		control.worldActive[this.x][this.y] = this;
 		this.destroyed = false;
 		super.setOverlap(false);
 	}
-	hide() {
+
+	hide() 
+	{
 		control.worldActive[this.x][this.y] = empty;
 		super.setOverlap(true);
 		this.destroyed = true;
 	}
 }
 
-class Chimney extends PassiveActor {
+class Chimney extends PassiveActor 
+{
 	constructor(x, y) 
 	{ 
 		super(x, y, "chimney"); 
@@ -139,8 +182,10 @@ class Chimney extends PassiveActor {
 	
 }
 
-class Empty extends PassiveActor {
-	constructor() { 
+class Empty extends PassiveActor 
+{
+	constructor() 
+	{ 
 	super(-1, -1, "empty"); 
 	this.setOverlap(true);
 	}
@@ -148,7 +193,8 @@ class Empty extends PassiveActor {
 	hide() {}
 }
 
-class Gold extends PassiveActor {
+class Gold extends PassiveActor 
+{
 	constructor(x, y) 
 	{
 		super(x, y, "gold"); 
@@ -156,31 +202,43 @@ class Gold extends PassiveActor {
 	
 }
 
-class Invalid extends PassiveActor {
+class Invalid extends PassiveActor 
+{
+
 	constructor(x, y) { super(x, y, "invalid"); }
 }
 
-class Ladder extends PassiveActor {
-	constructor(x, y) {
+class Ladder extends PassiveActor 
+{
+
+	constructor(x, y) 
+	{
 		super(x, y, "ladder");
 		this.visible = false;
 		this.setOverlap(true);
 	}
-	show() {
+
+	show() 
+	{
 		if( this.visible )
 			super.show();
 	}
-	hide() {
+
+	hide() 
+	{
 		if( this.visible )
 			super.hide();
 	}
-	makeVisible() {
+
+	makeVisible() 
+	{
 		this.visible = true;
 		this.show();
 	}
 }
 
-class Rope extends PassiveActor {
+class Rope extends PassiveActor 
+{
 	constructor(x, y) 
 	{
 		super(x, y, "rope"); 
@@ -188,7 +246,8 @@ class Rope extends PassiveActor {
 	}
 }
 
-class Stone extends PassiveActor {
+class Stone extends PassiveActor 
+{
 	constructor(x, y) 
 	{ 
 		super(x, y, "stone"); 
@@ -196,12 +255,16 @@ class Stone extends PassiveActor {
 	}
 }
 
-class Hero extends ActiveActor {
-	constructor(x, y) {
+class Hero extends ActiveActor 
+{
+	constructor(x, y) 
+	{
 		super(x, y, "stone");
 		this.setOverlap(true);
 	}
-	animation() {
+
+	animation() 
+	{
 		let k = control.getKey();
         if( k == ' ' ) { alert('SHOOT') ; return; }
         if( k == null ) return;
@@ -210,21 +273,25 @@ class Hero extends ActiveActor {
 	}
 }
 
-class Robot extends ActiveActor {
-	constructor(x, y) {
+class Robot extends ActiveActor 
+{
+	constructor(x, y) 
+	{
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
 		this.setOverlap(true);
-	  }
+	}
 }
 
 
 
 // GAME CONTROL
 
-class GameControl {
-	constructor() {
+class GameControl 
+{
+	constructor() 
+	{
 		control = this;
 		this.key = 0;
 		this.time = 0;
@@ -236,9 +303,12 @@ class GameControl {
 		this.loadLevel(1);
 		this.setupEvents();
 	}
-	createMatrix() { // stored by columns
+
+	createMatrix() 
+	{ // stored by columns
 		let matrix = new Array(WORLD_WIDTH);
-		for( let x = 0 ; x < WORLD_WIDTH ; x++ ) {
+		for( let x = 0 ; x < WORLD_WIDTH ; x++ )
+		{
 			let a = new Array(WORLD_HEIGHT);
 			for( let y = 0 ; y < WORLD_HEIGHT ; y++ )
 				a[y] = empty;
@@ -246,7 +316,9 @@ class GameControl {
 		}
 		return matrix;
 	}
-	loadLevel(level) {
+
+	loadLevel(level) 
+	{
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
@@ -256,10 +328,12 @@ class GameControl {
 				GameFactory.actorFromCode(map[y][x], x, y);
 			}
 	}
-	getKey() {
+	getKey() 
+	{
 		let k = control.key;
 		control.key = 0;
-		switch( k ) {
+		switch( k ) 
+		{
 			case 37: case 79: case 74: return [-1, 0]; //  LEFT, O, J
 			case 38: case 81: case 73: return [0, -1]; //    UP, Q, I
 			case 39: case 80: case 76: return [1, 0];  // RIGHT, P, L
@@ -267,14 +341,18 @@ class GameControl {
 			case 0: return null;
 			default: return String.fromCharCode(k);
 		// http://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
-		};	
+		}	
 	}
-	setupEvents() {
+
+	setupEvents() 
+	{
 		addEventListener("keydown", this.keyDownEvent, false);
 		addEventListener("keyup", this.keyUpEvent, false);
 		setInterval(this.animationEvent, 1000 / ANIMATION_EVENTS_PER_SECOND);
 	}
-	animationEvent() {
+
+	animationEvent() 
+	{
 		control.time++;
 		for(let x=0 ; x < WORLD_WIDTH ; x++)
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
@@ -285,17 +363,19 @@ class GameControl {
 				}
             }
 	}
-	keyDownEvent(k) {
-		control.key = k.keyCode;
-	}
-	keyUpEvent(k) {
-	}
+
+
+	keyDownEvent(k) { control.key = k.keyCode; }
+
+	keyUpEvent(k) {}
+
 }
 
 
 // HTML FORM
 
-function onLoad() {
+function onLoad() 
+{
   // Asynchronously load the images an then run the game
 	GameImages.loadAll(function() { new GameControl(); });
 }
@@ -305,6 +385,7 @@ function b1()
 	control.ctx.clearRect(0,0, 504, 272); 
 	onLoad(); 
 }
+
 function b2()
 {
 
