@@ -1,7 +1,20 @@
 /*     Lode Runner
 
+Aluno 1: ?number ?name <-- mandatory to fill
+Aluno 2: ?number ?name <-- mandatory to fill
+
+Comentario:
+
+O ficheiro "LodeRunner.js" tem de incluir, logo nas primeiras linhas,
+um comentário inicial contendo: o nome e número dos dois alunos que
+realizaram o projeto; indicação de quais as partes do trabalho que
+foram feitas e das que não foram feitas (para facilitar uma correção
+sem enganos); ainda possivelmente alertando para alguns aspetos da
+implementação que possam ser menos óbvios para o avaliador.
+
 01234567890123456789012345678901234567890123456789012345678901234567890123456789
 */
+
 
 // GLOBAL VARIABLES
 
@@ -18,21 +31,38 @@ class Actor {
 		this.y = y;
 		this.imageName = imageName;
 		this.show();
+		this.destroyable = false;
+		this.overlap = false;
 	}
 	//GameImages[this.imageName] - gets the property imageName from GameImages
 	draw(x, y) {			
 		control.ctx.drawImage(GameImages[this.imageName],
 				x * ACTOR_PIXELS_X, y* ACTOR_PIXELS_Y);
 	}
+
     move(dx, dy) {
 		this.hide();
 		this.x += dx;
 		this.y += dy;
 		this.show();
 	}
+	setDestroyable(bool)
+	{
+		this.destroyable = bool;
+	}
+	setOverlap(bool)
+	{
+		this.overlap = bool;
+	}
+	
 }
 
 class PassiveActor extends Actor {
+
+	constructor(x,y,ImageName)
+	{
+		super(x,y,ImageName);
+	}
 	show() {
 		control.world[this.x][this.y] = this;
 		this.draw(this.x, this.y);
@@ -47,6 +77,7 @@ class ActiveActor extends Actor {
     constructor(x, y, imageName) {
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
+		this.falling = true;
 	}
 	show() {
 		control.worldActive[this.x][this.y] = this;
@@ -58,24 +89,72 @@ class ActiveActor extends Actor {
 	}
 	animation() {
 	}
+	static checkMove(x,y)
+	{
+		return hasGround(y + 1);
+	}
+	hasGround(y)
+	{
+		if(y > WORLD_HEIGHT){
+			alert("LOSTGAME");
+		}
+		//if(control.worldActive[this.x][this.y])
+		console.log(y);
+		return true;
+	} 
+
+	move(dx, dy) {
+		checkMove((this.x + dx), (this.y+ dy));
+		super.move(dx,dy);
+		console.log(this.y);
+	}
+
 }
 
 class Brick extends PassiveActor {
-	constructor(x, y) { super(x, y, "brick"); }
+	constructor(x, y) 
+	{ 
+		super(x, y, "brick"); 
+		super.setDestroyable(true);
+		this.destroyed = false;
+	}
+	show() {
+		super.show();
+		control.worldActive[this.x][this.y] = this;
+		this.destroyed = false;
+		super.setOverlap(false);
+	}
+	hide() {
+		control.worldActive[this.x][this.y] = empty;
+		super.setOverlap(true);
+		this.destroyed = true;
+	}
 }
 
 class Chimney extends PassiveActor {
-	constructor(x, y) { super(x, y, "chimney"); }
+	constructor(x, y) 
+	{ 
+		super(x, y, "chimney"); 
+		this.setOverlap(true);
+	}
+	
 }
 
 class Empty extends PassiveActor {
-	constructor() { super(-1, -1, "empty"); }
+	constructor() { 
+	super(-1, -1, "empty"); 
+	this.setOverlap(true);
+	}
 	show() {}
 	hide() {}
 }
 
 class Gold extends PassiveActor {
-	constructor(x, y) { super(x, y, "gold"); }
+	constructor(x, y) 
+	{
+		super(x, y, "gold"); 
+	}
+	
 }
 
 class Invalid extends PassiveActor {
@@ -86,6 +165,7 @@ class Ladder extends PassiveActor {
 	constructor(x, y) {
 		super(x, y, "ladder");
 		this.visible = false;
+		this.setOverlap(true);
 	}
 	show() {
 		if( this.visible )
@@ -102,26 +182,32 @@ class Ladder extends PassiveActor {
 }
 
 class Rope extends PassiveActor {
-	constructor(x, y) { super(x, y, "rope"); }
+	constructor(x, y) 
+	{
+		super(x, y, "rope"); 
+		this.setOverlap(true);
+	}
 }
 
 class Stone extends PassiveActor {
-	constructor(x, y) { super(x, y, "stone"); }
+	constructor(x, y) 
+	{ 
+		super(x, y, "stone"); 
+		this.setOverlap(true);
+	}
 }
 
 class Hero extends ActiveActor {
 	constructor(x, y) {
-		super(x, y, "hero_runs_left");
+		super(x, y, "stone");
+		this.setOverlap(true);
 	}
 	animation() {
-		var k = control.getKey();
+		let k = control.getKey();
         if( k == ' ' ) { alert('SHOOT') ; return; }
         if( k == null ) return;
         let [dx, dy] = k;
-        this.hide();
-        this.x += dx;
-        this.y += dy;
-        this.show();
+		super.move(dx,dy);
 	}
 }
 
@@ -130,6 +216,7 @@ class Robot extends ActiveActor {
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
+		this.setOverlap(true);
 	  }
 }
 
@@ -142,6 +229,7 @@ class GameControl {
 		control = this;
 		this.key = 0;
 		this.time = 0;
+		this.stop = false;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
@@ -213,8 +301,15 @@ function onLoad() {
 	GameImages.loadAll(function() { new GameControl(); });
 }
 
-function b1() { mesg("button1") }
-function b2() { mesg("button2") }
+function b1() 
+{ 
+	control.ctx.clearRect(0,0, 504, 272); 
+	onLoad(); 
+}
+function b2()
+{
+
+}
 
 
 
