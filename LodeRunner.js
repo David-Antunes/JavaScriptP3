@@ -126,7 +126,7 @@ class ActiveActor extends Actor
 				canMove = false;
 			else
 			{
-				if(control.world[this.x][this.y + 1] === empty || control.world[nextX][this.y + 1] === empty)
+				if(control.world[this.x][this.y + 1] === empty && control.world[nextX][this.y + 1] === empty)
 					this.falling = true;
 			}
 		}
