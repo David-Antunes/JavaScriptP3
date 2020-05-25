@@ -19,7 +19,8 @@ class Actor {
 		this.imageName = imageName;
 		this.show();
 	}
-	draw(x, y) {
+	//GameImages[this.imageName] - gets the property imageName from GameImages
+	draw(x, y) {			
 		control.ctx.drawImage(GameImages[this.imageName],
 				x * ACTOR_PIXELS_X, y* ACTOR_PIXELS_Y);
 	}
