@@ -126,7 +126,7 @@ class ActiveActor extends Actor
 				canMove = false;
 			else
 			{
-				if(control.world[this.x][this.y + 1] === empty)
+				if(control.world[this.x][this.y + 1] === empty || control.world[nextX][this.y + 1] === empty)
 					this.falling = true;
 			}
 		}
@@ -143,10 +143,12 @@ class ActiveActor extends Actor
 		{
 			if(control.worldActive[x][y] === empty)
 			{
-				if(!control.world[x][y].overlap)
-					return false;
-				else if(control.world[x][y].destroyable)
-						if(!control.world[x][y].destroyed)
+				if(control.world[x][y].destroyable)
+				{
+					if(!control.world[x][y].destroyed)
+						return false;
+				}
+				else if(!control.world[x][y].overlap)
 							return false;
 			}
 			else
@@ -169,7 +171,7 @@ class ActiveActor extends Actor
 		}
 		else
 		{
-		if(this.checkMove(dx, dy));
+		if(this.checkMove(dx, dy))
 			super.move(dx,dy);
 		}
 		console.log(this.y);
@@ -289,7 +291,7 @@ class Hero extends ActiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "stone");
+		super(x, y, "hero_runs_left");
 	}
 
 	animation() 
