@@ -341,7 +341,7 @@ class GameControl
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
-		this.loadLevel(1);
+		this.loadLevel(2);
 		this.setupEvents();
 	}
 
