@@ -34,7 +34,9 @@ class Actor
 		this.y = y;
 		this.imageName = imageName;
 		this.show();
+		// Esta variavel serve para saber se o heroi pode destroir o objeto ou nao
 		this.destroyable = false;
+		// Esta variavel serve para saber se o heroi estar em cima do objecto
 		this.overlap = false;
 	}
 
@@ -52,11 +54,13 @@ class Actor
 		this.show();
 	}
 
+	// Altera o estado do objecto para destrutivel
 	setDestroyable(bool)
 	{
 		this.destroyable = bool;
 	}
 
+	// Altera o estado do objecto para se possivel estar em cima dele
 	setOverlap(bool)
 	{
 		this.overlap = bool;
@@ -106,13 +110,14 @@ class ActiveActor extends Actor
 	}
 	animation() {}
 	
+	// ESTE METODO E PARA VERIFICAR SE O PROXIMO MOVIMENTO E POSSIVEL
 	checkMove(a,b)
 	{
 		let e = a;
 		e++;
 		return this.hasGround((b + 1));
 	}
-
+	//VERIFICA SE EXISTE CHAO
 	hasGround(y)
 	{
 		if(y > WORLD_HEIGHT)
@@ -121,26 +126,25 @@ class ActiveActor extends Actor
 		}
 		else
 		{
-			if(control.worldActive[this.x][this.y] === Empty.constructor)
-				if(control.worldActive[this.x][below] === Empty.constructor)
+			if(control.worldActive[this.x][this.below] === Empty.constructor)
+				if(control.world[this.x][below] === Empty.constructor)
 					return false;
-			else
-			{
-				if(control.worldActive[this.x][below].overlap)
+				else if(!control.world[this.x][below].destroyable)
 					return false;
-			}
+				else if(control.worldActive[this.x][below].destroyable)
+					
+			return true;
 		}
 		//if(control.worldActive[this.x][this.y])
 		console.log(y);
-		return true;
 	} 
 
 	move(dx, dy) 
 	{
 		let nextX = (this.x + dx);
 		let nextY = (this.y + dy);
-		this.checkMove(nextX, nextY);
-		super.move(dx,dy);
+		if(this.checkMove(nextX, nextY));
+			super.move(dx,dy);
 		console.log(this.y);
 	}
 
