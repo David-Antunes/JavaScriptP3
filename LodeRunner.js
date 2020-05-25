@@ -22,7 +22,6 @@ implementação que possam ser menos óbvios para o avaliador.
 
 let empty, hero, control;
 
-
 // ACTORS
 
 class Actor 
@@ -71,11 +70,11 @@ class Actor
 class PassiveActor extends Actor 
 {
 
-	constructor(x,y,ImageName, eatable)
+	constructor(x,y,ImageName)
 	{
 		super(x,y,ImageName);
 		this.destroyed = false;
-		this.eatable = eatable;
+		this.eatable = false;
 	}
 
 	show() 
@@ -132,6 +131,15 @@ class ActiveActor extends Actor
 		control.worldActive[this.x + dx][this.y + dy] = this;
 	}
 
+	eatGold(dx, dy)
+	{
+		if(control.worldActive[this.x + dx][this.y + dy].eatable)
+		{
+			control.gold++;
+		}
+
+	}
+
 	applyGravity()
 	{
 		if(control.worldActive[this.x][this.y] === empty 
@@ -139,73 +147,69 @@ class ActiveActor extends Actor
 			&& control.worldActive[this.x][(this.y + 1)] === empty 
 			&& control.world[this.x][(this.y + 1)] === empty)
 			super.move(0,1);
+			this.moveInMatrix(this.x, (this.y + 1));
 	}
 	
-	// ESTE METODO E PARA VERIFICAR SE O PROXIMO MOVIMENTO E POSSIVEL
-	checkMove(dx,dy)
+
+	hasGround()
 	{
-		let nextX = (this.x + dx);
-		let nextY = (this.y + dy);
-		let canMove = this.moveNextBlock(nextX,nextY);
-		if(!canMove)
-			canMove = false;
-		else
-		{
-			if(control.world[this.x][this.y] === empty && dy == -1)
-				canMove = false;
-			else
-			{
-				if(control.world[this.x][this.y + 1] === empty && control.world[nextX][this.y + 1] === empty)
-					this.falling = true;
-			}
-		}
-		return canMove;
-	}
-	//VERIFICA SE EXISTE CHAO
-	moveNextBlock(x,y)
-	{
-		if(y > WORLD_HEIGHT || y < 0 || x < 0 || x > WORLD_WIDTH)
-		{
+		if(control.worldActive[this.x][this.y] === empty && control.world[this.x][this.y + 1] === empty)
 			return false;
-		}
-		else
-		{
-			if(control.worldActive[x][y] === empty)
-			{
-				if(control.world[x][y].destroyable)
-				{
-					if(!control.world[x][y].destroyed)
-						return false;
-				}
-				else if(!control.world[x][y].overlap)
-							return false;
-			}
-			else
-			{
-				return false;
-			}
-		}
 		return true;
 	}
 
 	move(dx, dy) 
 	{
-
+	if(!ObjectInCanvas(this.x + dx, this.y + dy))
+		return;
+	if(dy == -1 && control.world[this.x][this.y] === empty)
+		return;
+	
 		if(this.falling)
 		{
-			if(this.moveNextBlock(this.x, this.y + 1))
-				super.move(0,1);
+			if(!this.hasGround)
+			{
+				if(control.world[this.x][this.y + 1] !== empty)
+				{
+					if(control.world[this.x][this.y + 1].moveInto(0,1))
+					{
+						this.eatGold(0,1);
+						this.moveInMatrix(0,1);
+						super.move(0,1);
+					}
+					else
+					{
+						this.falling = false;
+					}
+				}
+				else
+				{
+					if(control.world[this.x][this.y] !== empty)
+					{
+						if(control.world[this.x][this.y + 1].moveInto(dx,dy))
+						{
+							this.eatGold(dx,dy);
+							this.moveInMatrix(dx,dy);
+							super.move(dx,dy);
+						}
+					}
+				}
+			}
 			else
-				this.falling = false;
+			{
+				let nextX = (this.x + dx);
+				let nextY = (this.y + dy);
+				if(!control.world[nextX][nextY].moveInto(dx,dy))
+					return;
+				else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
+					return;
+				
+				this.eatGold(dx,dy);
+				this.moveInMatrix(dx,dy);
+				super.move(dx,dy);	
+			}
 		}
-		else
-		{
-		if(this.checkMove(dx, dy))
-			super.move(dx,dy);
-		}
-		console.log(this.y);
 	}
-
 }
 
 class Brick extends PassiveActor 
@@ -276,6 +280,18 @@ class Gold extends PassiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "gold",true);
+		this.eatable = true;
+	}
+
+	show() 
+	{
+		control.worldActive[this.x][this.y] = this;
+		this.draw(this.x, this.y);
+	}
+	hide() 
+	{
+		control.worldActive[this.x][this.y] = empty;
+		control.world[this.x][this.y].draw(this.x, this.y);
 	}
 	
 }
@@ -381,14 +397,14 @@ class Hero extends ActiveActor
 		} else if ([dx,dy]===[0,1]){ //moving down
 			//this.imageName = 'hero_runs_down';
 		}
-		if(control.worldActive[this.x+1][this.y].canEat()){
-			control.worldActive[this.x][this.y] = empty;
-		}
+
+		/*
 		console.log(control.worldActive[this.x+1][this.y].canEat() +" jjOUROoo "+ this.x, this.y);
 		console.log(control.worldActive[18][this.y].canEat() +" jjOUROoo "+ this.x);
 		if(control.worldActive[this.x + 1][this.y] instanceof Gold ){
 			console.log("OUROoo");
 		}
+		*/
 		super.move(dx,dy);
 		
 	}
@@ -412,6 +428,9 @@ class GameControl
 {
 	constructor() 
 	{
+		this.gold = 0;
+		this.level = 0;
+
 		control = this;
 		this.key = 0;
 		this.time = 0;
@@ -442,6 +461,7 @@ class GameControl
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
+		control.level = level;
         for(let x=0 ; x < WORLD_WIDTH ; x++)
             for(let y=0 ; y < WORLD_HEIGHT ; y++) {
 					// x/y reversed because map stored by lines
@@ -511,5 +531,14 @@ function b2()
 
 }
 
+function ObjectInCanvas(x,y)
+{
+	if(x < 0 || x > WORLD_WIDTH)
+		return false;
+	if(y < 0 || y > WORLD_HEIGHT)
+		return false;
+	
+	return true;
+}
 
 
