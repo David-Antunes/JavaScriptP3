@@ -74,6 +74,8 @@ class PassiveActor extends Actor
 	constructor(x,y,ImageName)
 	{
 		super(x,y,ImageName);
+		this.destroyed = false;
+		
 	}
 
 	show() 
@@ -111,40 +113,65 @@ class ActiveActor extends Actor
 	animation() {}
 	
 	// ESTE METODO E PARA VERIFICAR SE O PROXIMO MOVIMENTO E POSSIVEL
-	checkMove(a,b)
-	{
-		let e = a;
-		e++;
-		return this.hasGround((b + 1));
-	}
-	//VERIFICA SE EXISTE CHAO
-	hasGround(y)
-	{
-		if(y > WORLD_HEIGHT)
-		{
-			alert("LOSTGAME");
-		}
-		else
-		{
-			if(control.worldActive[this.x][this.below] === Empty.constructor)
-				if(control.world[this.x][below] === Empty.constructor)
-					return false;
-				else if(!control.world[this.x][below].destroyable)
-					return false;
-				else if(control.worldActive[this.x][below].destroyable)
-					
-			return true;
-		}
-		//if(control.worldActive[this.x][this.y])
-		console.log(y);
-	} 
-
-	move(dx, dy) 
+	checkMove(dx,dy)
 	{
 		let nextX = (this.x + dx);
 		let nextY = (this.y + dy);
-		if(this.checkMove(nextX, nextY));
+		let canMove = this.moveNextBlock(nextX,nextY);
+		if(!canMove)
+			canMove = false;
+		else
+		{
+			if(control.world[this.x][this.y] === empty && dy == -1)
+				canMove = false;
+			else
+			{
+				if(control.world[this.x][this.y + 1] === empty)
+					this.falling = true;
+			}
+		}
+		return canMove;
+	}
+	//VERIFICA SE EXISTE CHAO
+	moveNextBlock(x,y)
+	{
+		if(y > WORLD_HEIGHT || y < 0 || x < 0 || x > WORLD_WIDTH)
+		{
+			return false;
+		}
+		else
+		{
+			if(control.worldActive[x][y] === empty)
+			{
+				if(!control.world[x][y].overlap)
+					return false;
+				else if(control.world[x][y].destroyable)
+						if(!control.world[x][y].destroyed)
+							return false;
+			}
+			else
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	move(dx, dy) 
+	{
+
+		if(this.falling)
+		{
+			if(this.moveNextBlock(this.x, this.y + 1))
+				super.move(0,1);
+			else
+				this.falling = false;
+		}
+		else
+		{
+		if(this.checkMove(dx, dy));
 			super.move(dx,dy);
+		}
 		console.log(this.y);
 	}
 
@@ -164,7 +191,6 @@ class Brick extends PassiveActor
 	{
 		super.show();
 		control.worldActive[this.x][this.y] = this;
-		this.destroyed = false;
 		super.setOverlap(false);
 	}
 
@@ -201,7 +227,7 @@ class Gold extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "gold"); 
+		super(x, y, "gold");
 	}
 	
 }
@@ -264,7 +290,6 @@ class Hero extends ActiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "stone");
-		this.setOverlap(true);
 	}
 
 	animation() 
@@ -284,7 +309,6 @@ class Robot extends ActiveActor
 		super(x, y, "robot_runs_right");
 		this.dx = 1;
 		this.dy = 0;
-		this.setOverlap(true);
 	}
 }
 
