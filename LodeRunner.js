@@ -37,6 +37,7 @@ class Actor
 		this.destroyable = false;
 		// Esta variavel serve para saber se o heroi estar em cima do objecto
 		this.overlap = false;
+		this.eatable = false;
 	}
 
 	draw(x, y) 
@@ -73,9 +74,13 @@ class PassiveActor extends Actor
 	constructor(x,y,ImageName)
 	{
 		super(x,y,ImageName);
+		// Variavel para saber se foi destruido
 		this.destroyed = false;
+		// Variavel para saber se pode ser comido
 		this.eatable = false;
+		// Variavel para saber se podemos atravessar
 		this.passthrough = false;
+		// Variavel para saber se tem um movimento predefinido
 		this.constraint = false;
 	}
 
@@ -141,23 +146,15 @@ class ActiveActor extends Actor
 		}
 
 	}
-
+	// Alterar todas as variaveis necessarias para o movimento do heroi
 	moveActor(dx,dy)
 	{
 		this.eatGold(dx,dy);
 		this.moveInMatrix(dx,dy);
 		super.move(dx,dy);
 	}
-
-	applyGravity()
-	{
-		if(control.worldActive[this.x][this.y] === empty 
-			&& control.world[this.x][this.y] === empty 
-			&& control.worldActive[this.x][(this.y + 1)] === empty 
-			&& control.world[this.x][(this.y + 1)] === empty)
-			this.moveActor(0,1);
-	}
 	
+	//VERIFICA Se tem chao
 	hasGround()
 	{
 		if(control.world[this.x][this.y] === empty 
@@ -211,49 +208,6 @@ class ActiveActor extends Actor
 		}
 	}
 }
-/*
-
-if(this.falling)
-		{
-			if(!this.hasGround)
-			{
-				if(control.world[this.x][this.y + 1] !== empty)
-				{
-					if(control.world[this.x][this.y + 1].moveInto(0,1))
-					{
-						this.moveActor(0,1)
-					}
-					else
-					{
-						this.falling = false;
-					}
-				}
-				else
-				{
-					if(control.world[this.x][this.y] !== empty)
-					{
-						if(control.world[this.x][this.y + 1].moveInto(dx,dy))
-						{
-							this.moveActor(dx,dy);
-						}
-					}
-				}
-			}
-			else
-			{
-				let nextX = (this.x + dx);
-				let nextY = (this.y + dy);
-				if(!control.world[nextX][nextY].moveInto(dx,dy))
-					return;
-				else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
-					return;
-				
-				this.eatGold(dx,dy);
-				this.moveInMatrix(dx,dy);
-				super.move(dx,dy);	
-			}
-		}
-*/
 
 class Brick extends PassiveActor 
 {
@@ -308,6 +262,7 @@ class Chimney extends PassiveActor
 		return true;
 	}
 
+	// Devolve o movimento que o heroi tem que fazer para sair
 	checkContstraint()
 	{
 		return [0, 1];
@@ -430,6 +385,7 @@ class Hero extends ActiveActor
 	{
 		super(x, y, "hero_runs_left");
 		hero = this;
+		this.eatable = true;
 	}
 
 	animation() 
@@ -472,8 +428,45 @@ class Robot extends ActiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "robot_runs_right");
-		this.dx = 1;
-		this.dy = 0;
+		this.eatable = false;
+		this.overlap = false;
+	}
+
+	getHeroDir()
+	{
+		let dir = [0,0];
+		if(this.x < hero.x)
+			dir[0] = 1;
+		else
+			dir[0] = -1;
+
+		if(this.y < hero.y)
+			dir[1] = 1;
+		else
+			dir[1] = -1;
+
+		return dir;
+	}
+
+	animation()
+	{
+		let dir = this.getHeroDir();
+		let dx = dir[0];
+		let dy = dir[1];
+
+		if(dir[1] != 0 && control.world[this.x][this.y + 1].moveInto(0,dir[1]))
+			super.move(0, dir[1]);
+		else
+		{
+			dy = 0;
+			if(dx===-1&&dy===0){ // moving left
+				this.imageName = 'robot_runs_left';
+			} else if (dx===1&&dy===0){ //moving right
+				this.imageName = 'robot_runs_right';
+			}
+				super.move(dir[0], 0);
+		}
+		console.log("Robot: " + [this.x,this.y]);
 	}
 }
 
@@ -556,7 +549,7 @@ class GameControl
 				let a = control.worldActive[x][y];
 				if( a.time < control.time ) {
 					a.time = control.time;
-					a.animation();
+					a.animation();	
 				}
             }
 	}
