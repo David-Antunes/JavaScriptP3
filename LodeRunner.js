@@ -454,8 +454,12 @@ class Robot extends ActiveActor
 		let dx = dir[0];
 		let dy = dir[1];
 
-		if(dir[1] != 0 && control.world[this.x][this.y + 1].moveInto(0,dir[1]))
-			super.move(0, dir[1]);
+		if(dir[1] != 0 && control.world[this.x][this.y + dir[1]].moveInto(0,dir[1]))
+		{
+			if(!(control.world[this.x][this.y + 1] === hero))
+				super.move(0, dir[1]);
+			else control.endgame();
+		}
 		else
 		{
 			dy = 0;
@@ -464,7 +468,11 @@ class Robot extends ActiveActor
 			} else if (dx===1&&dy===0){ //moving right
 				this.imageName = 'robot_runs_right';
 			}
-				super.move(dir[0], 0);
+
+			if(!(control.world[this.x + dir[1]][this.y + 1] === hero))
+				super.move(dir[0],0);
+			else control.endgame();
+
 		}
 		console.log("Robot: " + [this.x,this.y]);
 	}
@@ -573,7 +581,7 @@ function onLoad()
 function b1() 
 { 
 	control.ctx.clearRect(0,0, 504, 272); 
-	onLoad(); 
+	control = new GameControl();
 }
 
 function b2()
