@@ -29,6 +29,7 @@ class Actor
 
 	constructor(x, y, imageName) 
 	{
+		this.name = "";
 		this.x = x;
 		this.y = y;
 		this.imageName = imageName;
@@ -109,6 +110,11 @@ class PassiveActor extends Actor
 	{
 		return true;
 	}
+
+	checkConstraint()
+	{
+		return [0,0];
+	}
 }
 
 class ActiveActor extends Actor 
@@ -118,7 +124,8 @@ class ActiveActor extends Actor
 	{
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
-		this.falling = true;
+		this.gravity = true;
+		this.direction = [0,0];
 	}
 	show() 
 	{
@@ -132,80 +139,59 @@ class ActiveActor extends Actor
 	}
 	animation() {}
 
-	moveInMatrix(dx, dy)
-	{
-		control.worldActive[this.x][this.y] = empty;
-		control.worldActive[this.x + dx][this.y + dy] = this;
-	}
-
-	eatGold(dx, dy)
-	{
-		if(control.worldActive[this.x + dx][this.y + dy].eatable)
-		{
-			control.gold++;
-		}
-
-	}
-	// Alterar todas as variaveis necessarias para o movimento do heroi
-	moveActor(dx,dy)
-	{
-		this.eatGold(dx,dy);
-		this.moveInMatrix(dx,dy);
-		super.move(dx,dy);
-	}
-	
 	//VERIFICA Se tem chao
 	hasGround()
 	{
-		if(control.world[this.x][this.y] === empty 
-			&& control.world[this.x][this.y + 1] === empty)
-			this.falling = true;
-		else if(control.world[this.x][this.y + 1].passthrough)
-			this.falling = true;
-			else
-			this.falling = false;
+		if(control.world[this.x][this.y + 1] === empty)
+			return false;
+		return true;
 	}
 
+	left()
+	{
+		if(this.dir == [-1,0])
+			return true;
+		return false;
+	}
+
+	up()
+	{
+		if(this.dir == [0,-1])
+			return true;
+		return false;
+	}
+	// Verifica se o proximo movimento esta dentro do mundo
+	// Verifica se pode sair do objecto em que esta
+	// Verifica se pode entrar para o objecto seguinte
 	move(dx, dy) 
 	{
-		if(!ObjectInCanvas(this.x + dx, this.y + dy))
+		let nextX = (this.x + dx);
+		let nextY = (this.y + dy);
+
+		if(!ObjectInCanvas(nextX, nextY))
 			return;
-		if((dy == -1 && control.world[this.x][this.y] === empty) && control.world[this.x][this.y + 1] !== empty)
+		else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
 			return;
-		this.hasGround();
-		if(this.falling)
-		{
-			if(control.world[this.x][this.y + 1].constraint)
-				this.moveActor(0,1);
-			else
-			{
-				this.moveActor(0,1);
-				this.falling = false;
-			}
-		}
+		else if(!control.world[nextX][nextY].moveInto(dx,dy))
+			return;
 		else
 		{
-			let nextX = (this.x + dx);
-			let nextY = (this.y + dy);
-
-			if(control.world[this.x][this.y].constraint)
-			{
-				let dir = control.world[this.x][this.y].checkContstraint();
-				this.moveActor(dir[0],dir[1]);
-				return;
-			}
-			if(control.worldActive[nextX][nextY].eatable)
-			{
-				this.moveActor(dx,dy);
-				return;
-			}
-
-			if(!control.world[nextX][nextY].moveInto(dx,dy))
-				return;
-			else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
-				return;
-			else this.moveActor(dx,dy);
+			this.hide();
+			super.move(dx,dy);
+			this.direction[dx,dy];
+			this.show();
+			console.log([this.x,this.y]);
 		}
+	}
+
+	canShoot()
+	{
+		return false;
+	}
+
+	shoot()
+	{
+
 	}
 }
 
@@ -214,7 +200,8 @@ class Brick extends PassiveActor
 
 	constructor(x, y) 
 	{ 
-		super(x, y, "brick",false); 
+		super(x, y, "brick");
+		super.name = "brick";
 		super.setDestroyable(true);
 		this.destroyed = false;
 	}
@@ -242,14 +229,22 @@ class Brick extends PassiveActor
 			return false;
 		
 		return true;
-	}	
+	}
+	
+	moveOutFrom()
+	{
+		if(this.Overlap)
+			return true;
+		else return false;
+	}
 }
 
 class Chimney extends PassiveActor 
 {
 	constructor(x, y) 
 	{ 
-		super(x, y, "chimney",false); 
+		super(x, y, "chimney");
+		super.name = "chimney"; 
 		this.setOverlap(true);
 		this.passthrough = true;
 		this.constraint = true;
@@ -263,7 +258,7 @@ class Chimney extends PassiveActor
 	}
 
 	// Devolve o movimento que o heroi tem que fazer para sair
-	checkContstraint()
+	checkConstraint()
 	{
 		return [0, 1];
 	}
@@ -274,6 +269,7 @@ class Empty extends PassiveActor
 	constructor() 
 	{ 
 	super(-1, -1, "empty"); 
+	super.name = "empty";
 	this.setOverlap(true);
 	}
 	show() {}
@@ -284,7 +280,8 @@ class Gold extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "gold",true);
+		super(x, y, "gold");
+		super.name = "gold";
 		this.eatable = true;
 	}
 
@@ -312,7 +309,8 @@ class Ladder extends PassiveActor
 
 	constructor(x, y) 
 	{
-		super(x, y, "ladder",false);
+		super(x, y, "ladder");
+		super.name = "ladder";
 		this.visible = false;
 		this.setOverlap(true);
 	}
@@ -340,7 +338,8 @@ class Rope extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "rope",false); 
+		super(x, y, "rope"); 
+		super.name = "rope";
 		this.setOverlap(true);
 		this.passthrough = true;
 	}
@@ -362,7 +361,8 @@ class Stone extends PassiveActor
 {
 	constructor(x, y) 
 	{
-		super(x, y, "stone"); 
+		super(x, y, "stone");
+		super.name = "stone"; 
 		this.setOverlap(true);
 	}
 
@@ -384,42 +384,122 @@ class Hero extends ActiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "hero_runs_left");
+		super.name = "hero";
 		hero = this;
 		this.eatable = true;
 	}
-
-	animation() 
+	animation()
 	{
+	// Recebe input
 		let k = control.getKey();
-        if( k == ' ' ) { alert('SHOOT') ; return; }
-        if( k == null ) return;
-		let [dx, dy] = k;
+		let nextBLock;
+		let [dx, dy] = [0,0];
 		
-		if(super.falling)
-			if(this.imageName == 'hero_runs_left' || this.imageName == 'hero_falls_left')
+			if(k != ' ' && k != null)
+			{
+				[dx, dy] = k;
+				nextBLock = control.world[this.x + dx][this.y + dy];
+			}
+
+
+		let curBlock = control.world[this.x][this.y];
+		let groundBlock = control.world[this.x][this.y + 1];
+
+		// Verifica se não esta restringido
+		if(curBlock.constraint || groundBlock.constraint)
+		{
+			let dir;
+			// Recebe a direcao para percorrer
+			if(curBlock.constraint)
+				dir = curBlock.checkConstraint();
+			else
+				dir = groundBlock.checkConstraint();
+
+			super.move(dir[0],dir[1]);
+		}
+		// Verifica se nao esta a cair 
+		else if(!super.hasGround() && curBlock == empty)
+		{
+			if(this.left())
 				this.imageName = "hero_falls_left";
-			else if(this.imageName == 'hero_runs_right' || this.imageName == 'hero_falls_right')
-			this.imageName = "hero_falls_right";
-
-		if(dx===-1&&dy===0){ // moving left
-			this.imageName = 'hero_runs_left';
-		} else if (dx===1&&dy===0){ //moving right
-			this.imageName = 'hero_runs_right';
-		}else if ([dx,dy]===[0,-1]){ //moving up
-			//this.imageName = 'hero_runs_up';
-		} else if ([dx,dy]===[0,1]){ //moving down
-			//this.imageName = 'hero_runs_down';
+			else
+				this.imageName = "hero_falls_right";
+			
+			super.move(0,1);
 		}
+		// Tenta Mover
+		else
+		{
+			if( k == ' ' ) 
+			{ 
+				if(super.canShoot())
+				{
+					if(super.left())
+					this.imageName = "hero_shoots_left"
+					else
+					this.imageName = "hero_shoots_right"
+					
+					super.shoot();
+				}
+			}
+			else if(k != null)
+			{
+				if(!curBlock.moveOutFrom(dx,dy))
+					return;
+				else if(!nextBLock.moveInto(dx,dy))
+					return;
+				else
+				{
+					if(nextBLock == empty && curBlock == empty && dy == -1)
+						return;
 
-		/*
-		console.log(control.worldActive[this.x+1][this.y].canEat() +" jjOUROoo "+ this.x, this.y);
-		console.log(control.worldActive[18][this.y].canEat() +" jjOUROoo "+ this.x);
-		if(control.worldActive[this.x + 1][this.y] instanceof Gold ){
-			console.log("OUROoo");
+					switch(nextBLock.name)
+					{
+						case "ladder": 
+							if(this.imageName == "hero_on_ladder_left")
+								this.imageName = "hero_on_ladder_right";
+							else if(this.imageName == "hero_on_ladder_right")
+								this.imageName = "hero_on_ladder_left";
+							else
+							{
+								if(dx==-1 && dy==0) 
+									this.imageName = "hero_on_ladder_left";
+								else
+									this.imageName = "hero_on_ladder_right";
+							}
+
+						break;
+						case "empty":
+							if(nextBLock == empty && groundBlock != empty)
+							{
+								if(dx==-1 && dy==0) 
+								this.imageName = 'hero_runs_left';
+								else
+								this.imageName = 'hero_runs_right';
+							}
+							else
+							{
+								if(super.left()) 
+								this.imageName = 'hero_falls_left';
+								else
+								this.imageName = 'hero_falls_right';
+							}
+					
+						break;
+
+						case "rope":
+
+							if(dx==-1 && dy==0) 
+								this.imageName = 'hero_on_rope_left';
+							else
+								this.imageName = 'hero_on_rope_right';	
+
+						break;
+					}
+					super.move(dx,dy);
+				}
+			}
 		}
-		*/
-		super.move(dx,dy);
-		
 	}
 }
 
@@ -428,6 +508,7 @@ class Robot extends ActiveActor
 	constructor(x, y) 
 	{
 		super(x, y, "robot_runs_right");
+		super.name = "robot";
 		this.eatable = false;
 		this.overlap = false;
 	}
@@ -450,31 +531,7 @@ class Robot extends ActiveActor
 
 	animation()
 	{
-		let dir = this.getHeroDir();
-		let dx = dir[0];
-		let dy = dir[1];
-
-		if(dir[1] != 0 && control.world[this.x][this.y + dir[1]].moveInto(0,dir[1]))
-		{
-			if(!(control.world[this.x][this.y + 1] === hero))
-				super.move(0, dir[1]);
-			else control.endgame();
-		}
-		else
-		{
-			dy = 0;
-			if(dx===-1&&dy===0){ // moving left
-				this.imageName = 'robot_runs_left';
-			} else if (dx===1&&dy===0){ //moving right
-				this.imageName = 'robot_runs_right';
-			}
-
-			if(!(control.world[this.x + dir[1]][this.y + 1] === hero))
-				super.move(dir[0],0);
-			else control.endgame();
-
-		}
-		console.log("Robot: " + [this.x,this.y]);
+		
 	}
 }
 
@@ -492,7 +549,6 @@ class GameControl
 		control = this;
 		this.key = 0;
 		this.time = 0;
-		this.stop = false;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
