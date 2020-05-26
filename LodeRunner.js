@@ -142,7 +142,7 @@ class ActiveActor extends Actor
 	//VERIFICA Se tem chao
 	hasGround()
 	{
-		if(control.world[this.x][this.y + 1] === empty)
+		if(control.world[this.x][this.y + 1] === empty  || control.world[this.x][this.y + 1].passthrough)
 			return false;
 		return true;
 	}
@@ -404,10 +404,12 @@ class Hero extends ActiveActor
 				nextBlock = control.world[this.x + dx][this.y + dy];
 			}
 
-
+		if(k==' '){
+			console.log('Someone wants to shoot1');
+		}
 		let curBlock = control.world[this.x][this.y];
 		let groundBlock = control.world[this.x][this.y + 1];
-
+		
 		// Verifica se não esta restringido
 		if(curBlock.constraint || groundBlock.constraint)
 		{
@@ -420,8 +422,9 @@ class Hero extends ActiveActor
 
 			super.move(dir[0],dir[1]);
 		}
-		// Verifica se nao esta a cair 
-		else if(!super.hasGround() && curBlock == empty)
+		// Verifica se nao esta a cair
+		
+		else if(!super.hasGround() && (curBlock == empty))
 		{
 			if(super.left())
 				this.imageName = "hero_falls_left";
@@ -523,6 +526,24 @@ class Hero extends ActiveActor
 					// MUDA DE POSICAO
 					super.move(dx,dy);
 				}
+			}
+		}
+	}
+
+	shoot(){
+		console.log("Clicked on shoot");
+		let toShoot = null;
+		if(super.left()){
+			toShoot = control.world[this.x-1][this.y];
+			if(toShoot.destroyable){
+				control.world[this.x-1][this.y].destroyable = empty;
+				
+			}
+		}else{
+			toShoot = control.world[this.x+1][this.y];
+			if(toShoot.destroyable){
+				control.world[this.x+1][this.y].destroyable = empty;
+				
 			}
 		}
 	}
