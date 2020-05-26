@@ -93,6 +93,7 @@ class PassiveActor extends Actor
 
 	hide() 
 	{
+		console.log("I am going to hide");
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
@@ -207,6 +208,7 @@ class Brick extends PassiveActor
 		super.name = "brick";
 		super.setDestroyable(true);
 		this.destroyed = false;
+		this.timer = 0;
 	}
 
 	show() 
@@ -218,7 +220,10 @@ class Brick extends PassiveActor
 
 	hide() 
 	{
-		control.worldActive[this.x][this.y] = empty;
+		control.worldActive[this.x][this.y] = this;
+		console.log("Brickk "+control.worldActive[this.x][this.y].x + " "+ control.worldActive[this.x][this.y].y);
+		empty.draw(this.x, this.y);
+		this.timer=0;
 		super.setOverlap(true);
 		this.destroyed = true;
 	}
@@ -239,6 +244,19 @@ class Brick extends PassiveActor
 		if(this.Overlap)
 			return true;
 		else return false;
+	}
+
+	animation(){
+		console.log("Brickk "+this.x + " "+ this.y)
+		if(this.destroyed){
+			this.timer ++;
+			if(this.timer===100){
+				this.show();
+				this.timer = 0;
+				this.destroyed = false;
+			}
+		}
+		
 	}
 }
 
@@ -403,13 +421,16 @@ class Hero extends ActiveActor
 				[dx, dy] = k;
 				nextBlock = control.world[this.x + dx][this.y + dy];
 			}
-
+		
 		if(k==' '){
 			console.log('Someone wants to shoot1');
 		}
 		let curBlock = control.world[this.x][this.y];
+		//if(this.x+1<WORLD_WIDTH&&this.y+1){
+
+		//}
 		let groundBlock = control.world[this.x][this.y + 1];
-		
+		let groundBlockToShoot =  control.world[this.x+1][this.y + 1];
 		// Verifica se não esta restringido
 		if(curBlock.constraint || groundBlock.constraint)
 		{
@@ -439,14 +460,14 @@ class Hero extends ActiveActor
 			// SE FOR PARA DISPARAR
 			if( k == ' ' ) 
 			{ 
-				if(super.canShoot())
+				if(groundBlockToShoot.destroyable)
 				{
 					if(super.left())
 					this.imageName = "hero_shoots_left"
 					else
 					this.imageName = "hero_shoots_right"
 					
-					super.shoot();
+					this.shoot();
 				}
 			}
 			// VERIFICA SE NAO EXISTE NENHUM INPUT
@@ -532,19 +553,16 @@ class Hero extends ActiveActor
 
 	shoot(){
 		console.log("Clicked on shoot");
-		let toShoot = null;
+		//control.world[this.x+1][this.y + 1];
+		
+		console.log(control.world[this.x+1][this.y + 1]);
 		if(super.left()){
-			toShoot = control.world[this.x-1][this.y];
-			if(toShoot.destroyable){
-				control.world[this.x-1][this.y].destroyable = empty;
-				
-			}
+				control.world[this.x+1][this.y+1].hide();
+				//control.world[this.x-1][this.y+1].hide();
+				//empty.draw();
 		}else{
-			toShoot = control.world[this.x+1][this.y];
-			if(toShoot.destroyable){
-				control.world[this.x+1][this.y].destroyable = empty;
-				
-			}
+				control.world[this.x+1][this.y+1].hide();
+				console.log();
 		}
 	}
 }
