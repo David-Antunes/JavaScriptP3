@@ -430,6 +430,7 @@ class Hero extends ActiveActor
 		// Tenta Mover
 		else
 		{
+			// SE FOR PARA DISPARAR
 			if( k == ' ' ) 
 			{ 
 				if(super.canShoot())
@@ -442,17 +443,21 @@ class Hero extends ActiveActor
 					super.shoot();
 				}
 			}
+			// VERIFICA SE NAO EXISTE NENHUM INPUT
 			else if(k != null)
 			{
+				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
 				if(!curBlock.moveOutFrom(dx,dy))
 					return;
 				else if(!nextBLock.moveInto(dx,dy))
 					return;
 				else
 				{
+					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
 					if(nextBLock == empty && curBlock == empty && dy == -1)
 						return;
 
+					// VERIFICA QUAL E O BLOCO SEGUINTE E GERA A CORRETA ANIMACAO
 					switch(nextBLock.name)
 					{
 						case "ladder": 
@@ -496,6 +501,7 @@ class Hero extends ActiveActor
 
 						break;
 					}
+					// MUDA DE POSICAO
 					super.move(dx,dy);
 				}
 			}
