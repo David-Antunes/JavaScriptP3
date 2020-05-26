@@ -75,6 +75,8 @@ class PassiveActor extends Actor
 		super(x,y,ImageName);
 		this.destroyed = false;
 		this.eatable = false;
+		this.passthrough = false;
+		this.constraint = false;
 	}
 
 	show() 
@@ -140,32 +142,78 @@ class ActiveActor extends Actor
 
 	}
 
+	moveActor(dx,dy)
+	{
+		this.eatGold(dx,dy);
+		this.moveInMatrix(dx,dy);
+		super.move(dx,dy);
+	}
+
 	applyGravity()
 	{
 		if(control.worldActive[this.x][this.y] === empty 
 			&& control.world[this.x][this.y] === empty 
 			&& control.worldActive[this.x][(this.y + 1)] === empty 
 			&& control.world[this.x][(this.y + 1)] === empty)
-			super.move(0,1);
-			this.moveInMatrix(this.x, (this.y + 1));
+			this.moveActor(0,1);
 	}
 	
-
 	hasGround()
 	{
-		if(control.worldActive[this.x][this.y] === empty && control.world[this.x][this.y + 1] === empty)
-			return false;
-		return true;
+		if(control.world[this.x][this.y] === empty 
+			&& control.world[this.x][this.y + 1] === empty)
+			this.falling = true;
+		else if(control.world[this.x][this.y + 1].passthrough)
+			this.falling = true;
+			else
+			this.falling = false;
 	}
 
 	move(dx, dy) 
 	{
-	if(!ObjectInCanvas(this.x + dx, this.y + dy))
-		return;
-	if(dy == -1 && control.world[this.x][this.y] === empty)
-		return;
-	
+		if(!ObjectInCanvas(this.x + dx, this.y + dy))
+			return;
+		if((dy == -1 && control.world[this.x][this.y] === empty) && control.world[this.x][this.y + 1] !== empty)
+			return;
+		this.hasGround();
 		if(this.falling)
+		{
+			if(control.world[this.x][this.y + 1].constraint)
+				this.moveActor(0,1);
+			else
+			{
+				this.moveActor(0,1);
+				this.falling = false;
+			}
+		}
+		else
+		{
+			let nextX = (this.x + dx);
+			let nextY = (this.y + dy);
+
+			if(control.world[this.x][this.y].constraint)
+			{
+				let dir = control.world[this.x][this.y].checkContstraint();
+				this.moveActor(dir[0],dir[1]);
+				return;
+			}
+			if(control.worldActive[nextX][nextY].eatable)
+			{
+				this.moveActor(dx,dy);
+				return;
+			}
+
+			if(!control.world[nextX][nextY].moveInto(dx,dy))
+				return;
+			else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
+				return;
+			else this.moveActor(dx,dy);
+		}
+	}
+}
+/*
+
+if(this.falling)
 		{
 			if(!this.hasGround)
 			{
@@ -173,9 +221,7 @@ class ActiveActor extends Actor
 				{
 					if(control.world[this.x][this.y + 1].moveInto(0,1))
 					{
-						this.eatGold(0,1);
-						this.moveInMatrix(0,1);
-						super.move(0,1);
+						this.moveActor(0,1)
 					}
 					else
 					{
@@ -188,9 +234,7 @@ class ActiveActor extends Actor
 					{
 						if(control.world[this.x][this.y + 1].moveInto(dx,dy))
 						{
-							this.eatGold(dx,dy);
-							this.moveInMatrix(dx,dy);
-							super.move(dx,dy);
+							this.moveActor(dx,dy);
 						}
 					}
 				}
@@ -209,8 +253,7 @@ class ActiveActor extends Actor
 				super.move(dx,dy);	
 			}
 		}
-	}
-}
+*/
 
 class Brick extends PassiveActor 
 {
@@ -254,6 +297,8 @@ class Chimney extends PassiveActor
 	{ 
 		super(x, y, "chimney",false); 
 		this.setOverlap(true);
+		this.passthrough = true;
+		this.constraint = true;
 	}
 
 	moveInto(dx, dy)
@@ -262,13 +307,18 @@ class Chimney extends PassiveActor
 			return false;
 		return true;
 	}
+
+	checkContstraint()
+	{
+		return [0, 1];
+	}
 }
 
 class Empty extends PassiveActor 
 {
 	constructor() 
 	{ 
-	super(-1, -1, "empty",false); 
+	super(-1, -1, "empty"); 
 	this.setOverlap(true);
 	}
 	show() {}
@@ -337,11 +387,12 @@ class Rope extends PassiveActor
 	{
 		super(x, y, "rope",false); 
 		this.setOverlap(true);
+		this.passthrough = true;
 	}
 
 	moveInto(dx, dy)
 	{
-		if(dx == 0 && dy == -1)
+		if(dx == 0 && dy == -1 && control.world[this.x][this.y + 1] === empty)
 			return false;
 		return true;
 	}
@@ -388,6 +439,12 @@ class Hero extends ActiveActor
         if( k == null ) return;
 		let [dx, dy] = k;
 		
+		if(super.falling)
+			if(this.imageName == 'hero_runs_left' || this.imageName == 'hero_falls_left')
+				this.imageName = "hero_falls_left";
+			else if(this.imageName == 'hero_runs_right' || this.imageName == 'hero_falls_right')
+			this.imageName = "hero_falls_right";
+
 		if(dx===-1&&dy===0){ // moving left
 			this.imageName = 'hero_runs_left';
 		} else if (dx===1&&dy===0){ //moving right
