@@ -149,14 +149,14 @@ class ActiveActor extends Actor
 
 	left()
 	{
-		if(this.dir == [-1,0])
+		if(this.direction[0] == -1)
 			return true;
 		return false;
 	}
 
 	up()
 	{
-		if(this.dir == [0,-1])
+		if(this.direction[1] == -1)
 			return true;
 		return false;
 	}
@@ -178,7 +178,10 @@ class ActiveActor extends Actor
 		{
 			this.hide();
 			super.move(dx,dy);
-			this.direction[dx,dy];
+			if(dx == 1 ||dx == -1)
+				this.direction[0] = dx;
+			if(dy == 1 || dy == -1)
+				this.direction[1] = dy;
 			this.show();
 			console.log([this.x,this.y]);
 		}
@@ -392,13 +395,13 @@ class Hero extends ActiveActor
 	{
 	// Recebe input
 		let k = control.getKey();
-		let nextBLock;
+		let nextBlock;
 		let [dx, dy] = [0,0];
 		
 			if(k != ' ' && k != null)
 			{
 				[dx, dy] = k;
-				nextBLock = control.world[this.x + dx][this.y + dy];
+				nextBlock = control.world[this.x + dx][this.y + dy];
 			}
 
 
@@ -420,7 +423,7 @@ class Hero extends ActiveActor
 		// Verifica se nao esta a cair 
 		else if(!super.hasGround() && curBlock == empty)
 		{
-			if(this.left())
+			if(super.left())
 				this.imageName = "hero_falls_left";
 			else
 				this.imageName = "hero_falls_right";
@@ -449,16 +452,16 @@ class Hero extends ActiveActor
 				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
 				if(!curBlock.moveOutFrom(dx,dy))
 					return;
-				else if(!nextBLock.moveInto(dx,dy))
+				else if(!nextBlock.moveInto(dx,dy))
 					return;
 				else
 				{
 					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
-					if(nextBLock == empty && curBlock == empty && dy == -1)
+					if(nextBlock == empty && curBlock == empty && dy == -1)
 						return;
 
 					// VERIFICA QUAL E O BLOCO SEGUINTE E GERA A CORRETA ANIMACAO
-					switch(nextBLock.name)
+					switch(nextBlock.name)
 					{
 						case "ladder": 
 							if(this.imageName == "hero_on_ladder_left")
@@ -475,13 +478,29 @@ class Hero extends ActiveActor
 
 						break;
 						case "empty":
-							if(nextBLock == empty && groundBlock != empty)
+							if(nextBlock == empty && groundBlock != empty && curBlock == empty)
+							
 							{
-								if(dx==-1 && dy==0) 
+								if(dx == -1) 
 								this.imageName = 'hero_runs_left';
 								else
 								this.imageName = 'hero_runs_right';
-							}
+							} 
+							else if(nextBlock == empty && groundBlock != empty && curBlock != empty)
+							{
+								// Procura o proximo chao
+								let nextGround = control.world[this.x + dx][(this.y - 1 - dy)];
+								let nextdir = dx;
+								
+								//Se o chao for uma escada retorna a direcao do boneco Senao e a direcao dada
+								if(nextGround == curBlock)
+									nextdir = this.direction[0];
+
+								if(nextdir == -1) 
+								this.imageName = 'hero_runs_left';
+								else
+								this.imageName = 'hero_runs_right';
+							} 
 							else
 							{
 								if(super.left()) 
@@ -489,7 +508,7 @@ class Hero extends ActiveActor
 								else
 								this.imageName = 'hero_falls_right';
 							}
-					
+
 						break;
 
 						case "rope":
