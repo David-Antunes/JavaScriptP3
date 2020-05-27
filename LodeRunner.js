@@ -143,7 +143,6 @@ class ActiveActor extends Actor
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-	animation() {}
 
 	//VERIFICA Se tem chao
 	hasGround()
@@ -166,6 +165,7 @@ class ActiveActor extends Actor
 			return true;
 		return false;
 	}
+
 	// Verifica se o proximo movimento esta dentro do mundo
 	// Verifica se pode sair do objecto em que esta
 	// Verifica se pode entrar para o objecto seguinte
@@ -189,6 +189,122 @@ class ActiveActor extends Actor
 				this.direction[1] = dy;
 		}
 	}
+
+	showAnimation()
+	{
+		let curBlock = control.world[this.x][this.y];
+		let groundBlock = control.world[this.x][this.y + 1];
+
+		switch(curBlock.name)
+					{
+						case "ladder": 
+							if(this.imageName == this.name + "_on_ladder_left")
+								this.imageName = this.name + "_on_ladder_right";
+							else if(this.imageName == this.name + "_on_ladder_right")
+								this.imageName = this.name + "_on_ladder_left";
+							else
+							{
+								if(this.direction[0] == -1) 
+									this.imageName = this.name + "_on_ladder_left";
+								else
+									this.imageName = this.name + "_on_ladder_right";
+							}
+
+						break;
+						case "empty":
+							if(curBlock == empty && groundBlock != empty && !groundBlock.passthrough)
+							{
+								if(this.direction[0] == -1 || this.direction[0] == 0) 
+								this.imageName = this.name + '_runs_left';
+								else
+								this.imageName = this.name + '_runs_right';
+							} 
+							else 
+							{
+								if(this.direction[0] == -1) 
+								this.imageName = this.name + '_falls_left';
+								else
+								this.imageName = this.name + '_falls_right';
+							}
+
+						break;
+
+						case "rope":
+
+							if(this.direction[0] == -1) 
+								this.imageName = this.name + '_on_rope_left';
+							else
+								this.imageName = this.name + '_on_rope_right';	
+
+						break;
+
+						case "chimney":
+
+							if(this.direction[0] == -1) 
+								this.imageName = this.name + '_falls_left';
+							else
+								this.imageName = this.name + '_runs_right';	
+
+						break;
+
+						case "stone":
+
+							if(this.direction[0] == -1) 
+								this.imageName = this.name + '_runs_left';
+							else
+								this.imageName = this.name + '_runs_right';	
+
+						break;
+					}
+					this.show();
+	}
+
+	animation(k)
+	{
+		let [dx,dy] = k;
+		let curBlock = control.world[this.x][this.y];
+		
+		let groundBlock = control.getObject(this.x, this.y + 1);
+
+		// Verifica se nao esta a cair
+		
+		if((groundBlock == empty && curBlock == empty) 
+		|| (curBlock == empty && groundBlock != empty && groundBlock.passthrough) 
+		||  (!curBlock.overlap && groundBlock.passthrough) 
+		|| (curBlock.destroyed && groundBlock.passthrough && !groundBlock.overlap))
+		{	
+			this.hide();
+			this.move(0,1);
+			this.showAnimation();
+		}
+		
+		// Tenta Mover
+		else
+		{
+			if(dx != 0 || dy != 0)
+			{
+				let nextBlock = control.getObject(this.x + dx, this.y + dy);
+				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
+				if(!curBlock.moveOutFrom(dx,dy))
+					return;
+				else if(nextBlock != WorldBorder && !nextBlock.moveInto(dx,dy))
+					return;
+				else
+				{
+					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
+					if((nextBlock == WorldBorder) || nextBlock == empty && curBlock == empty && dy == -1)
+						return;
+
+					// MUDA DE POSICAO
+					this.hide();
+					this.move(dx,dy);
+					this.showAnimation();
+					this.show();
+				}
+			}
+		}
+	}
+	
 
 	canShoot()
 	{
@@ -470,153 +586,24 @@ class Hero extends ActiveActor
 		return false;
 	}
 
-	showAnimation()
-	{
-		let curBlock = control.world[this.x][this.y];
-		let groundBlock = control.world[this.x][this.y + 1];
-
-		switch(curBlock.name)
-					{
-						case "ladder": 
-							if(this.imageName == "hero_on_ladder_left")
-								this.imageName = "hero_on_ladder_right";
-							else if(this.imageName == "hero_on_ladder_right")
-								this.imageName = "hero_on_ladder_left";
-							else
-							{
-								if(this.direction[0] == -1) 
-									this.imageName = "hero_on_ladder_left";
-								else
-									this.imageName = "hero_on_ladder_right";
-							}
-
-						break;
-						case "empty":
-							if(curBlock == empty && groundBlock != empty && !groundBlock.passthrough)
-							{
-								if(this.direction[0] == -1 || this.direction[0] == 0) 
-								this.imageName = 'hero_runs_left';
-								else
-								this.imageName = 'hero_runs_right';
-							} 
-							else 
-							{
-								if(this.direction[0] == -1) 
-								this.imageName = 'hero_falls_left';
-								else
-								this.imageName = 'hero_falls_right';
-							}
-
-						break;
-
-						case "rope":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'hero_on_rope_left';
-							else
-								this.imageName = 'hero_on_rope_right';	
-
-						break;
-
-						case "chimney":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'hero_falls_left';
-							else
-								this.imageName = 'hero_runs_right';	
-
-						break;
-
-						case "stone":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'hero_runs_left';
-							else
-								this.imageName = 'hero_runs_right';	
-
-						break;
-					}
-					super.show();
-	}
-
 	animation()
 	{
-	// Recebe input
 		let k = control.getKey();
-		let nextBlock=null;
-		let [dx, dy] = [0,0];
-		
-			if(k != ' ' && k != null)
-			{
-				[dx, dy] = k;
-				if(this.isThereNext(dx,dy)){
-					nextBlock = control.world[this.x + dx][this.y + dy];
-				}
-			}
-		let curBlock = control.world[this.x][this.y];
-		
-		let groundBlock = null;
 
-		if(this.isThereNext(dx,1)){
-			groundBlock = control.world[this.x][this.y + 1];
-		}else{
-			//caiu num buraco em que nao e possivel sair
-			//control.worldActive[this.x][this.y]=control.world[this.x][this.y];
-			return;
-		}
-		// Verifica se não esta restringido
-		if(curBlock.constraint || groundBlock.constraint)
+		if(k == ' ')
+			this.shoot();
+		else 
 		{
-			let dir;
-			// Recebe a direcao para percorrer
-			if(curBlock.constraint)
-				dir = curBlock.checkConstraint();
-			else
-				dir = groundBlock.checkConstraint();
+			let [dx,dy] = [0,0];
 
-			super.hide();
-			super.move(dir[0],dir[1]);
-			this.showAnimation();
+			if(k != null)
+				 [dx,dy] = k;
+				 
+			super.animation([dx,dy]);
 		}
-		// Verifica se nao esta a cair
-		
-		else if((groundBlock == empty && curBlock == empty) || (curBlock == empty && groundBlock != empty && groundBlock.passthrough) ||  (!curBlock.overlap && groundBlock.passthrough) || (curBlock.destroyed && groundBlock.passthrough && !groundBlock.overlap	))
-		{	
-			super.hide();
-			super.move(0,1);
-			this.showAnimation();
-		}
-		// Tenta Mover
-		else
-		{
-			// SE FOR PARA DISPARAR
-			if( k == ' ' ) 
-			{ 
-				this.shoot();
-			}
-			// VERIFICA SE NAO EXISTE NENHUM INPUT
-			else if(k != null)
-			{
-				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
-				if(!curBlock.moveOutFrom(dx,dy))
-					return;
-				else if(nextBlock!=null && !nextBlock.moveInto(dx,dy))
-					return;
-				else
-				{
-					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
-					if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
-						return;
 
-					// MUDA DE POSICAO
-					super.hide();
-					super.move(dx,dy);
-					this.showAnimation();
-					super.show();
-				}
-			}
-		}
 	}
+
 
 	shoot()
 	{
@@ -654,6 +641,8 @@ class Robot extends ActiveActor
 		this.eatable = false;
 		this.overlap = false;
 		this.timer = 0;
+		this.holdCoin = null;
+		this.direction[1,0];	
 	}
 
 	getHeroDir()
@@ -676,92 +665,12 @@ class Robot extends ActiveActor
 		return dir;
 	}
 
-	showAnimation()
-	{
-		let curBlock = control.world[this.x][this.y];
-		let groundBlock = control.world[this.x][this.y + 1];
-
-		switch(curBlock.name)
-					{
-						case "ladder": 
-							if(this.imageName == "robot_on_ladder_left")
-								this.imageName = "robot_on_ladder_right";
-							else if(this.imageName == "hero_on_ladder_right")
-								this.imageName = "robot_on_ladder_left";
-							else
-							{
-								if(this.direction[0] == -1) 
-									this.imageName = "robot_on_ladder_left";
-								else
-									this.imageName = "robot_on_ladder_right";
-							}
-
-						break;
-						case "empty":
-							if(curBlock == empty && groundBlock != empty && !groundBlock.overlap)
-							{
-								if(this.direction[0] == -1 || this.direction[0] == 0) 
-								this.imageName = 'robot_runs_left';
-								else
-								this.imageName = 'robot_runs_right';
-							} 
-							else 
-							{
-								if(this.direction[0] == -1) 
-								this.imageName = 'robot_falls_left';
-								else
-								this.imageName = 'robot_falls_right';
-							}
-
-						break;
-
-						case "rope":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'robot_on_rope_left';
-							else
-								this.imageName = 'robot_on_rope_right';	
-
-						break;
-
-						case "chimney":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'robot_falls_left';
-							else
-								this.imageName = 'robot_falls_right';	
-
-						break;
-
-						case "stone":
-
-							if(this.direction[0] == -1) 
-								this.imageName = 'robot_runs_left';
-							else
-								this.imageName = 'robot_runs_right';	
-
-						break;
-					}
-					super.show();
-	}
-
+	
 	animation()
 	{
-	// Recebe input
+		// Recebe input
 		let [dx, dy] = this.getHeroDir();
 		
-		let curBlock = control.world[this.x][this.y];
-		let groundBlock = control.world[this.x][this.y + 1];
-
-		if(!super.hasGround() && (curBlock == empty || curBlock.passthrough))
-		{	
-			super.hide();
-			super.move(0,1);
-			this.showAnimation();
-		}
-		// Tenta Mover
-		else
-		{
 			if(this.timer > 0)
 			{
 				this.timer--;
@@ -769,46 +678,72 @@ class Robot extends ActiveActor
 			} 
 			else
 			{
-				this.timer = 9999;
-				let nextBlock = control.world[this.x][this.y + dy];
+				this.timer = 16;
+				let nextBlock = control.getObject(this.x,this.y + dy);
+				let curBlock = control.getObject(this.x,this.y);
 				// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
-				if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
-				return;
+				if((nextBlock == WorldBorder) || nextBlock == empty && curBlock == empty && dy == -1)
+					dy = 0;
 				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
 
-				// TESTA SE CONSEGUE MEXER NA VERTICAL
-				if(dy != 0)
-				{
+				let dir = this.checkRobotNextMove(dx,dy);
 
-					if(!nextBlock.moveInto(0,dy))
-						dy = 0;
-					else if(!curBlock.moveOutFrom(0,dy))
-						dy = 0;
-					else
-						dx = 0;
-				}	
-
-					// TESTA SE CONSEGUE MEXER NA HORIZONTAL
-					if(dx != 0) 
-					{
-						nextBlock = control.world[this.x + dx][this.y];
-						
-						if(nextBlock.moveInto(dx,0))
-						{
-							if(!curBlock.moveOutFrom(dx,0))
-								dx = 0;
-						}
-					}
-					//SE NAO SE CONSEGUE MEXER NAO FAZ NADA
-					if(dx == 0 && dy == 0)
-						return;
-
-					super.hide();
-					super.move(dx,dy);
-					this.showAnimation();
-					super.show();
+				if(this.eatCoin(dir[0],dir[1]))
+					return;
+				else if(this.eatActive(dir[0],dir[1]))
+					return;
+				else
+					super.animation(dir);
 			}
+	}
+
+	checkRobotNextMove(dx,dy)
+	{
+		let dir = [0,0];
+		let curBlock = control.world[this.x][this.y];
+		let nextBlock = control.world[this.x][this.y + dy];
+		
+		if(dy != 0)
+		{
+			if(nextBlock.moveInto(0,dy))
+				if(curBlock.moveOutFrom(0,dy))
+					dir[1] = dy;
+
+		}	
+		
+		if(dx != 0) 
+		{
+			nextBlock = control.world[this.x + dx][this.y];
+				
+			if(nextBlock.moveInto(dx,0))
+				if(curBlock.moveOutFrom(dx,0))
+					dir[0] = dx;
 		}
+		return dir;	
+	}
+
+	eatCoin(dx,dy)
+	{
+		let nextBlock = control.getObject(this.x + dx, this.y + dy);
+		if(nextBlock.name == "gold" && this.holdCoin == null)
+		{
+			this.holdCoin = control.getObject(this.x + dx, this.y + dy);
+			this.holdCoin.hide();
+			return true;
+		}
+		return false;
+	}
+
+	eatActive(dx,dy)
+	{
+		let nextBlock = control.getObject(this.x + dx, this.y + dy);
+		if(nextBlock.name == "hero")
+		{
+			hero.x = -1;
+			hero.y = -1;
+			return true;
+		}
+		return false;
 	}
 }
 
@@ -816,7 +751,7 @@ class WorldBorder extends Stone
 {
 	constructor()
 	{
-		super(-1,-1,"Stone");
+		super(-1,-1);
 		this.overlap(false);
 	}
 
@@ -825,7 +760,7 @@ class WorldBorder extends Stone
 		return false;
 	}
 	
-	moveOutFrom(dx,dy)
+	moveOutFrom(dx , dy)
 	{
 		return false;
 	}
@@ -928,8 +863,8 @@ class GameControl
 	getObject(x,y)
 	{
 		if(!ObjectInCanvas(x,y))
-			return new WorldBorder();
-		else if(control.worldActive[x][y] != empty)
+			return WorldBorder;
+		else
 			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
 	}
 
@@ -937,7 +872,7 @@ class GameControl
 	getPassiveObject(x,y)
 	{
 		if(!ObjectInCanvas(x,y))
-		return new WorldBorder();
+		return WorldBorder;
 	else
 		return control.world[x][y];
 	}
@@ -946,7 +881,7 @@ class GameControl
 	{
 		let groundY = y+1;
 		if(!ObjectInCanvas(x,groundY))
-			return new WorldBorder();
+			return WorldBorder;
 		else this.getObject(x, groundY);
 	}
 
@@ -955,7 +890,7 @@ class GameControl
 		if(isHeroStuck())
 			control.end = 1;
 		else(hero.x == -1 && hero.y == -1)
-			control.end = 1;
+			alert("GAME OVER");
 		
 	}
 	isHeroStuck() {}
@@ -983,7 +918,7 @@ function b2()
 
 function ObjectInCanvas(x,y)
 {
-	if(x < 0 || x > WORLD_WIDTH)
+	if(x < 0 || x >= WORLD_WIDTH)
 		return false;
 	if(y < 0 || y > WORLD_HEIGHT)
 		return false;
