@@ -148,9 +148,9 @@ class ActiveActor extends Actor
 	//VERIFICA Se tem chao
 	hasGround()
 	{
-		if(control.world[this.x][this.y + 1] === empty  || control.world[this.x][this.y + 1].passthrough)
-			return false;
-		return true;
+		if(!control.world[this.x][this.y + 1].overlap && !control.world[this.x][this.y + 1].passthrough)
+			return true;
+		return false;
 	}
 
 	left()
@@ -210,6 +210,7 @@ class Brick extends PassiveActor
 		super.setDestroyable(true);
 		this.destroyed = false;
 		this.timer = 0;
+		this.passthrough = false;
 	}
 
 	show() 
@@ -217,6 +218,7 @@ class Brick extends PassiveActor
 		super.show();
 		super.setOverlap(false);
 		this.destroyed=false;
+		this.passthrough = false;
 	}
 
 	hide() 
@@ -227,7 +229,7 @@ class Brick extends PassiveActor
 
 	moveInto(dx, dy)
 	{
-		if(!this.Overlap)
+		if(!this.overlap)
 			return false;
 		
 		if(dx == 0 && dy == -1)
@@ -236,11 +238,44 @@ class Brick extends PassiveActor
 		return true;
 	}
 	
-	moveOutFrom()
+	moveOutFrom(dx,dy)
 	{
-		if(this.Overlap)
-			return true;
-		else return false;
+/* 		if(!this.Overlap)
+			return false;
+		else
+		{ */
+			/* let AdjcentBricks = getAdjecentBricks();
+
+			for(let i = 0; i < AdjcentBricks.length ; i++)
+			{
+				let brick = AdjcentBricks[i];
+				let [bx, by] = [brick.x - this.x,brick.y - this.y];
+
+				if(bx == dx && by == dy)
+					return brick.moveInto(dx,dy);
+			} */
+
+			if(dx == 0 && dy == -1)
+				return false;
+		//}
+		return true;
+	}
+
+	getAdjecentBricks()
+	{
+		let list = [];
+
+		let brickLeft = getPassiveObject(this.x -1, y);
+		let brickRight = getPassiveObject(this.x + 1, y);
+		let brickUp = getPassiveObject(this.x, y - 1);
+		let brickDown = getPassiveObject(this.x, y + 1);
+
+		list.push(brickLeft);
+		list.push(brickRight);
+		list.push(brickUp);
+		list.push(brickDown);
+
+		return list;
 	}
 
 	animation(){
@@ -257,9 +292,10 @@ class Brick extends PassiveActor
 	{
 		if(this.timer > 0)
 			return;
-		this.timer = 24;
+		this.timer = 80;
 		super.setOverlap(true);
 		this.destroyed = true;
+		this.passthrough = true;
 		empty.draw(this.x, this.y);
 	}
 }
@@ -295,7 +331,8 @@ class Empty extends PassiveActor
 	{ 
 	super(-1, -1, "empty"); 
 	super.name = "empty";
-	this.setOverlap(true);
+	this.passthrough = true;
+	//this.setOverlap(true);
 	}
 	show() {}
 	hide() {}
@@ -371,7 +408,7 @@ class Rope extends PassiveActor
 
 	moveInto(dx, dy)
 	{
-		if(dx == 0 && dy == -1 && control.world[this.x][this.y + 1] === empty)
+		if(dx == 0 && dy == -1 && control.world[this.x][this.y + 1] == empty)
 			return false;
 		return true;
 	}
@@ -481,6 +518,15 @@ class Hero extends ActiveActor
 								this.imageName = 'hero_runs_right';	
 
 						break;
+
+						case "stone":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'hero_runs_left';
+							else
+								this.imageName = 'hero_runs_right';	
+
+						break;
 					}
 					super.show();
 	}
@@ -526,7 +572,7 @@ class Hero extends ActiveActor
 		}
 		// Verifica se nao esta a cair
 		
-		else if(!super.hasGround() && (curBlock == empty))
+		else if((groundBlock == empty && curBlock == empty) || (curBlock == empty && groundBlock != empty && groundBlock.passthrough) ||  (!curBlock.overlap && groundBlock.passthrough) || (curBlock.destroyed && groundBlock.passthrough && !groundBlock.overlap	))
 		{	
 			super.hide();
 			super.move(0,1);
@@ -686,6 +732,15 @@ class Robot extends ActiveActor
 							if(this.direction[0] == -1) 
 								this.imageName = 'robot_falls_left';
 							else
+								this.imageName = 'robot_falls_right';	
+
+						break;
+
+						case "stone":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'robot_runs_left';
+							else
 								this.imageName = 'robot_runs_right';	
 
 						break;
@@ -717,7 +772,7 @@ class Robot extends ActiveActor
 		}
 		// Verifica se nao esta a cair
 		
-		else if(!super.hasGround() && (curBlock == empty))
+		else if(!super.hasGround() && (curBlock == empty || curBlock.passthrough))
 		{	
 			super.hide();
 			super.move(0,1);
@@ -733,7 +788,7 @@ class Robot extends ActiveActor
 			} 
 			else
 			{
-				this.timer = 24;
+				this.timer = 9999;
 				let nextBlock = control.world[this.x][this.y + dy];
 				// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
 				if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
@@ -814,7 +869,7 @@ class GameControl
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
-		this.loadLevel(2);
+		this.loadLevel(1);
 		this.setupEvents();
 	}
 
