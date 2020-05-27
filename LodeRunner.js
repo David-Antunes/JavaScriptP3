@@ -20,7 +20,7 @@ implementação que possam ser menos óbvios para o avaliador.
 
 // tente não definir mais nenhuma variável global
 
-let empty, hero, control;
+let empty, hero, control, currentLevel;
 
 // ACTORS
 
@@ -489,6 +489,7 @@ class Hero extends ActiveActor
 	animation()
 	{
 	// Recebe input
+		this.countGold();
 		let k = control.getKey();
 		let nextBlock=null;
 		let [dx, dy] = [0,0];
@@ -587,6 +588,17 @@ class Hero extends ActiveActor
 					this.imageName = "hero_shoots_right";
 					groundBlockToShoot.destroyBlock();
 				}
+			}
+		}
+	}
+	countGold(){
+		//console.log(control.world[this.x][this.y]);
+		if(control.world[this.x][this.y].eatable){
+			control.gold--;
+			console.log("Count gold "+control.gold);
+			if(control.gold===0){
+				currentLevel++;
+				control.loadLevel(currentLevel);
 			}
 		}
 	}
@@ -809,13 +821,14 @@ class GameControl
 		this.level = 0;
 		this.end = 0;
 		control = this;
+		currentLevel = 2;
 		this.key = 0;
 		this.time = 0;
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
-		this.loadLevel(2);
+		this.loadLevel(currentLevel);
 		this.setupEvents();
 	}
 
@@ -842,6 +855,9 @@ class GameControl
             for(let y=0 ; y < WORLD_HEIGHT ; y++) {
 					// x/y reversed because map stored by lines
 				GameFactory.actorFromCode(map[y][x], x, y);
+				if(map[y][x]==='o'){
+					control.gold++;
+				}
 			}
 	}
 	getKey() 
