@@ -394,6 +394,14 @@ class Ladder extends PassiveActor
 		this.visible = true;
 		this.show();
 	}
+
+	moveInto(dx,dy)
+	{
+		if(dx == 0 && dy == -1 && control.getPassiveObject(this.x,this.y + 1).name != "ladder")
+			return false;
+		else
+			return true;
+	}
 }
 
 class Rope extends PassiveActor 
@@ -668,17 +676,6 @@ class Robot extends ActiveActor
 		return dir;
 	}
 
-	//funcao booleana para verificar se que verifica se ha possibilidade de haver objetos a frente
-	isThereNext(dx,dy){
-		let tx = this.x+dx;
-		let ty = this.y+dy;
-		if(ObjectInCanvas(tx,ty)){
-			return true;
-		}
-		return false;
-
-	}
-
 	showAnimation()
 	{
 		let curBlock = control.world[this.x][this.y];
@@ -756,23 +753,7 @@ class Robot extends ActiveActor
 		let curBlock = control.world[this.x][this.y];
 		let groundBlock = control.world[this.x][this.y + 1];
 
-		// Verifica se não esta restringido
-		if(curBlock.constraint || groundBlock.constraint)
-		{
-			let dir;
-			// Recebe a direcao para percorrer
-			if(curBlock.constraint)
-				dir = curBlock.checkConstraint();
-			else
-				dir = groundBlock.checkConstraint();
-
-			super.hide();
-			super.move(dir[0],dir[1]);
-			this.showAnimation();
-		}
-		// Verifica se nao esta a cair
-		
-		else if(!super.hasGround() && (curBlock == empty || curBlock.passthrough))
+		if(!super.hasGround() && (curBlock == empty || curBlock.passthrough))
 		{	
 			super.hide();
 			super.move(0,1);
