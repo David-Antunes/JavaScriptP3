@@ -148,9 +148,9 @@ class ActiveActor extends Actor
 	//VERIFICA Se tem chao
 	hasGround()
 	{
-		if(control.world[this.x][this.y + 1] === empty  || control.world[this.x][this.y + 1].passthrough)
-			return false;
-		return true;
+		if(!control.world[this.x][this.y + 1].overlap && !control.world[this.x][this.y + 1].passthrough)
+			return true;
+		return false;
 	}
 
 	left()
@@ -210,6 +210,7 @@ class Brick extends PassiveActor
 		super.setDestroyable(true);
 		this.destroyed = false;
 		this.timer = 0;
+		this.passthrough = false;
 	}
 
 	show() 
@@ -217,18 +218,18 @@ class Brick extends PassiveActor
 		super.show();
 		super.setOverlap(false);
 		this.destroyed=false;
+		this.passthrough = false;
 	}
 
 	hide() 
 	{
-		control.worldActive[this.x][this.y] = this;
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
 
 	moveInto(dx, dy)
 	{
-		if(!this.Overlap)
+		if(!this.overlap)
 			return false;
 		
 		if(dx == 0 && dy == -1)
@@ -237,11 +238,44 @@ class Brick extends PassiveActor
 		return true;
 	}
 	
-	moveOutFrom()
+	moveOutFrom(dx,dy)
 	{
-		if(this.Overlap)
-			return true;
-		else return false;
+/* 		if(!this.Overlap)
+			return false;
+		else
+		{ */
+			/* let AdjcentBricks = getAdjecentBricks();
+
+			for(let i = 0; i < AdjcentBricks.length ; i++)
+			{
+				let brick = AdjcentBricks[i];
+				let [bx, by] = [brick.x - this.x,brick.y - this.y];
+
+				if(bx == dx && by == dy)
+					return brick.moveInto(dx,dy);
+			} */
+
+			if(dx == 0 && dy == -1)
+				return false;
+		//}
+		return true;
+	}
+
+	getAdjecentBricks()
+	{
+		let list = [];
+
+		let brickLeft = getPassiveObject(this.x -1, y);
+		let brickRight = getPassiveObject(this.x + 1, y);
+		let brickUp = getPassiveObject(this.x, y - 1);
+		let brickDown = getPassiveObject(this.x, y + 1);
+
+		list.push(brickLeft);
+		list.push(brickRight);
+		list.push(brickUp);
+		list.push(brickDown);
+
+		return list;
 	}
 
 	animation(){
@@ -258,9 +292,10 @@ class Brick extends PassiveActor
 	{
 		if(this.timer > 0)
 			return;
-		this.timer = 24;
+		this.timer = 80;
 		super.setOverlap(true);
 		this.destroyed = true;
+		this.passthrough = true;
 		empty.draw(this.x, this.y);
 	}
 }
@@ -296,7 +331,8 @@ class Empty extends PassiveActor
 	{ 
 	super(-1, -1, "empty"); 
 	super.name = "empty";
-	this.setOverlap(true);
+	this.passthrough = true;
+	//this.setOverlap(true);
 	}
 	show() {}
 	hide() {}
@@ -358,6 +394,14 @@ class Ladder extends PassiveActor
 		this.visible = true;
 		this.show();
 	}
+
+	moveInto(dx,dy)
+	{
+		if(dx == 0 && dy == -1 && control.getPassiveObject(this.x,this.y + 1).name != "ladder")
+			return false;
+		else
+			return true;
+	}
 }
 
 class Rope extends PassiveActor 
@@ -372,7 +416,7 @@ class Rope extends PassiveActor
 
 	moveInto(dx, dy)
 	{
-		if(dx == 0 && dy == -1 && control.world[this.x][this.y + 1] === empty)
+		if(dx == 0 && dy == -1 && control.world[this.x][this.y + 1] == empty)
 			return false;
 		return true;
 	}
@@ -448,7 +492,7 @@ class Hero extends ActiveActor
 
 						break;
 						case "empty":
-							if(curBlock == empty && groundBlock != empty )
+							if(curBlock == empty && groundBlock != empty && !groundBlock.passthrough)
 							{
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = 'hero_runs_left';
@@ -478,6 +522,15 @@ class Hero extends ActiveActor
 
 							if(this.direction[0] == -1) 
 								this.imageName = 'hero_falls_left';
+							else
+								this.imageName = 'hero_runs_right';	
+
+						break;
+
+						case "stone":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'hero_runs_left';
 							else
 								this.imageName = 'hero_runs_right';	
 
@@ -528,7 +581,7 @@ class Hero extends ActiveActor
 		}
 		// Verifica se nao esta a cair
 		
-		else if(!super.hasGround() && (curBlock == empty))
+		else if((groundBlock == empty && curBlock == empty) || (curBlock == empty && groundBlock != empty && groundBlock.passthrough) ||  (!curBlock.overlap && groundBlock.passthrough) || (curBlock.destroyed && groundBlock.passthrough && !groundBlock.overlap	))
 		{	
 			super.hide();
 			super.move(0,1);
@@ -635,17 +688,6 @@ class Robot extends ActiveActor
 		return dir;
 	}
 
-	//funcao booleana para verificar se que verifica se ha possibilidade de haver objetos a frente
-	isThereNext(dx,dy){
-		let tx = this.x+dx;
-		let ty = this.y+dy;
-		if(ObjectInCanvas(tx,ty)){
-			return true;
-		}
-		return false;
-
-	}
-
 	showAnimation()
 	{
 		let curBlock = control.world[this.x][this.y];
@@ -668,7 +710,7 @@ class Robot extends ActiveActor
 
 						break;
 						case "empty":
-							if(curBlock == empty && groundBlock != empty )
+							if(curBlock == empty && groundBlock != empty && !groundBlock.overlap)
 							{
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = 'robot_runs_left';
@@ -699,6 +741,15 @@ class Robot extends ActiveActor
 							if(this.direction[0] == -1) 
 								this.imageName = 'robot_falls_left';
 							else
+								this.imageName = 'robot_falls_right';	
+
+						break;
+
+						case "stone":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'robot_runs_left';
+							else
 								this.imageName = 'robot_runs_right';	
 
 						break;
@@ -714,23 +765,7 @@ class Robot extends ActiveActor
 		let curBlock = control.world[this.x][this.y];
 		let groundBlock = control.world[this.x][this.y + 1];
 
-		// Verifica se não esta restringido
-		if(curBlock.constraint || groundBlock.constraint)
-		{
-			let dir;
-			// Recebe a direcao para percorrer
-			if(curBlock.constraint)
-				dir = curBlock.checkConstraint();
-			else
-				dir = groundBlock.checkConstraint();
-
-			super.hide();
-			super.move(dir[0],dir[1]);
-			this.showAnimation();
-		}
-		// Verifica se nao esta a cair
-		
-		else if(!super.hasGround() && (curBlock == empty))
+		if(!super.hasGround() && (curBlock == empty || curBlock.passthrough))
 		{	
 			super.hide();
 			super.move(0,1);
@@ -746,7 +781,7 @@ class Robot extends ActiveActor
 			} 
 			else
 			{
-				this.timer = 24;
+				this.timer = 9999;
 				let nextBlock = control.world[this.x][this.y + dy];
 				// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
 				if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
