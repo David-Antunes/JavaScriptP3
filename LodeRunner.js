@@ -143,7 +143,10 @@ class ActiveActor extends Actor
 	//VERIFICA Se tem chao
 	hasGround()
 	{
-		if(control.world[this.x][this.y + 1] === empty  || control.world[this.x][this.y + 1].passthrough)
+		if(this.x==12&&this.y==15){
+			console.log("control.world[this.x][this.y + 1].passthrough");
+		}
+		if(control.world[this.x][this.y + 1].passthrough)
 			return false;
 		return true;
 	}
@@ -168,12 +171,11 @@ class ActiveActor extends Actor
 	{
 		let nextX = (this.x + dx);
 		let nextY = (this.y + dy);
-
 		if(!ObjectInCanvas(nextX, nextY))
 			return;
 		else if(!control.world[this.x][this.y].moveOutFrom(dx,dy))
 			return;
-		else if(!control.world[nextX][nextY].moveInto(dx,dy))
+		else if(!control.world[nextX][nextY].passthrough)
 			return;
 		else
 		{
@@ -214,13 +216,15 @@ class Brick extends PassiveActor
 		control.worldActive[this.x][this.y] = empty;
 		super.setOverlap(false);
 		this.destroyed=false;
+		this.passthrough=false;
 	}
 
 	hide() 
 	{
 		console.log(this.x+" "+this.y);
+		this.passthrough=true;
 		control.worldActive[this.x][this.y] = this;
-		control.world[this.x][this.y] = empty;
+		//control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 		this.time=control.time;
 		this.toStop = this.time+100;
@@ -288,6 +292,7 @@ class Empty extends PassiveActor
 	{ 
 	super(-1, -1, "empty"); 
 	super.name = "empty";
+	this.passthrough=true;
 	this.setOverlap(true);
 	}
 	show() {}
@@ -499,7 +504,8 @@ class Hero extends ActiveActor
 			groundBlock = control.world[this.x][this.y + 1];
 		}else{
 			//caiu num buraco em que nao e possivel sair
-			//control.worldActive[this.x][this.y]=control.world[this.x][this.y];
+			control.worldActive[this.x][this.y]=control.world[this.x][this.y];
+			//console.log("CAiu no buraco");
 			return;
 		}
 		// Verifica se não esta restringido
@@ -509,7 +515,7 @@ class Hero extends ActiveActor
 			// Recebe a direcao para percorrer
 			if(curBlock.constraint)
 				dir = curBlock.checkConstraint();
-			else
+			else if(groundBlock!=null)
 				dir = groundBlock.checkConstraint();
 
 			super.hide();
@@ -518,8 +524,8 @@ class Hero extends ActiveActor
 		}
 		// Verifica se nao esta a cair
 		
-		else if(!super.hasGround() && (curBlock == empty))
-		{	
+		else if(!super.hasGround())
+		{	console.log("Vou cair");
 			super.hide();
 			super.move(0,1);
 			this.showAnimation();
@@ -559,13 +565,15 @@ class Hero extends ActiveActor
 	shoot()
 	{
 		let groundBlockToShoot = null;
+		let blockOnTopToShoot = null;
 		let xx = 0;
 		let yy = this.y+1;
 		if(super.left()){
 			xx = this.x-1;
 			if(xx>0){
 				groundBlockToShoot = control.world[xx][yy];
-				if(groundBlockToShoot.destroyable){
+				blockOnTopToShoot  = control.world[xx][this.y];
+				if(groundBlockToShoot.destroyable&&blockOnTopToShoot.passthrough){
 					this.imageName = "hero_shoots_left";
 					groundBlockToShoot.hide();
 				}
@@ -574,7 +582,9 @@ class Hero extends ActiveActor
 			xx = this.x+1;
 			if(xx<WORLD_WIDTH){
 				groundBlockToShoot = control.world[xx][yy];
-				if(groundBlockToShoot.destroyable){
+				blockOnTopToShoot  = control.world[xx][this.y];
+				if(groundBlockToShoot.destroyable&&blockOnTopToShoot
+					.passthrough){
 					this.imageName = "hero_shoots_right";
 					groundBlockToShoot.hide();
 				}
