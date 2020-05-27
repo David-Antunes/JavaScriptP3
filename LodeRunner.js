@@ -484,7 +484,7 @@ class Hero extends ActiveActor
 
 						break;
 						case "empty":
-							if(curBlock == empty && groundBlock != empty )
+							if(curBlock == empty && groundBlock != empty && !groundBlock.passthrough)
 							{
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = 'hero_runs_left';
@@ -701,7 +701,7 @@ class Robot extends ActiveActor
 
 						break;
 						case "empty":
-							if(curBlock == empty && groundBlock != empty )
+							if(curBlock == empty && groundBlock != empty && !groundBlock.overlap)
 							{
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = 'robot_runs_left';
@@ -869,7 +869,7 @@ class GameControl
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
-		this.loadLevel(1);
+		this.loadLevel(2);
 		this.setupEvents();
 	}
 
