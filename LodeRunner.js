@@ -555,6 +555,32 @@ class Hero extends ActiveActor
 			}
 		}
 	}
+
+	shoot()
+	{
+		let groundBlockToShoot = null;
+		let xx = 0;
+		let yy = this.y+1;
+		if(super.left()){
+			xx = this.x-1;
+			if(xx>0){
+				groundBlockToShoot = control.world[xx][yy];
+				if(groundBlockToShoot.destroyable){
+					this.imageName = "hero_shoots_left";
+					groundBlockToShoot.hide();
+				}
+			}
+		}else{
+			xx = this.x+1;
+			if(xx<WORLD_WIDTH){
+				groundBlockToShoot = control.world[xx][yy];
+				if(groundBlockToShoot.destroyable){
+					this.imageName = "hero_shoots_right";
+					groundBlockToShoot.hide();
+				}
+			}
+		}
+	}
 }
 
 class Robot extends ActiveActor 
@@ -699,7 +725,7 @@ class Robot extends ActiveActor
 			} 
 			else
 			{
-				this.timer = 5;
+				this.timer = 24;
 				let nextBlock = control.world[this.x][this.y + dy];
 				// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
 				if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
