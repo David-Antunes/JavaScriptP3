@@ -201,29 +201,32 @@ class ActiveActor extends Actor
 
 class Brick extends PassiveActor 
 {
-
 	constructor(x, y) 
 	{ 
 		super(x, y, "brick");
 		super.name = "brick";
 		super.setDestroyable(true);
 		this.destroyed = false;
-		this.timer = 0;
+		this.time = 0;
+		this.toStop = 0;
 	}
 
 	show() 
 	{
 		super.show();
-		control.worldActive[this.x][this.y] = this;
+		control.worldActive[this.x][this.y] = empty;
 		super.setOverlap(false);
+		this.destroyed=false;
 	}
 
 	hide() 
 	{
+		console.log(this.x+" "+this.y);
 		control.worldActive[this.x][this.y] = this;
-		console.log("Brickk "+control.worldActive[this.x][this.y].x + " "+ control.worldActive[this.x][this.y].y);
+		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
-		this.timer=0;
+		this.time=control.time;
+		this.toStop = this.time+100;
 		super.setOverlap(true);
 		this.destroyed = true;
 	}
@@ -247,16 +250,13 @@ class Brick extends PassiveActor
 	}
 
 	animation(){
-		console.log("Brickk "+this.x + " "+ this.y)
-		if(this.destroyed){
-			this.timer ++;
-			if(this.timer===100){
+		if(this.destroyed===true){
+			if(this.time >=this.toStop){
 				this.show();
-				this.timer = 0;
-				this.destroyed = false;
+			}else{
+				this.time ++;
 			}
 		}
-		
 	}
 }
 
@@ -409,28 +409,40 @@ class Hero extends ActiveActor
 		hero = this;
 		this.eatable = true;
 	}
+	//funcao booleana para verificar se que verifica se ha possibilidade de haver objetos a frente
+	isThereNext(dx,dy){
+		let tx = this.x+dx;
+		let ty = this.y+dy;
+		if(tx>0&&tx<WORLD_WIDTH&&ty>0&&ty<WORLD_HEIGHT){
+			return true;
+		}
+		return false;
+	}
 	animation()
 	{
 	// Recebe input
 		let k = control.getKey();
-		let nextBlock;
+		let nextBlock=null;
 		let [dx, dy] = [0,0];
 		
 			if(k != ' ' && k != null)
 			{
 				[dx, dy] = k;
-				nextBlock = control.world[this.x + dx][this.y + dy];
+				if(this.isThereNext(dx,dy)){
+					nextBlock = control.world[this.x + dx][this.y + dy];
+				}
 			}
-		
-		if(k==' '){
-			console.log('Someone wants to shoot1');
-		}
 		let curBlock = control.world[this.x][this.y];
-		//if(this.x+1<WORLD_WIDTH&&this.y+1){
+		
+		let groundBlock = null;
 
-		//}
-		let groundBlock = control.world[this.x][this.y + 1];
-		let groundBlockToShoot =  control.world[this.x+1][this.y + 1];
+		if(this.isThereNext(dx,1)){
+			groundBlock = control.world[this.x][this.y + 1];
+		}else{
+			//caiu num buraco em que nao e possivel sair
+			//control.worldActive[this.x][this.y]=control.world[this.x][this.y];
+			return;
+		}
 		// Verifica se não esta restringido
 		if(curBlock.constraint || groundBlock.constraint)
 		{
@@ -460,15 +472,7 @@ class Hero extends ActiveActor
 			// SE FOR PARA DISPARAR
 			if( k == ' ' ) 
 			{ 
-				if(groundBlockToShoot.destroyable)
-				{
-					if(super.left())
-					this.imageName = "hero_shoots_left"
-					else
-					this.imageName = "hero_shoots_right"
-					
-					this.shoot();
-				}
+				this.shoot();
 			}
 			// VERIFICA SE NAO EXISTE NENHUM INPUT
 			else if(k != null)
@@ -476,12 +480,12 @@ class Hero extends ActiveActor
 				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
 				if(!curBlock.moveOutFrom(dx,dy))
 					return;
-				else if(!nextBlock.moveInto(dx,dy))
+				else if(nextBlock!=null && !nextBlock.moveInto(dx,dy))
 					return;
 				else
 				{
 					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
-					if(nextBlock == empty && curBlock == empty && dy == -1)
+					if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
 						return;
 
 					// VERIFICA QUAL E O BLOCO SEGUINTE E GERA A CORRETA ANIMACAO
@@ -552,9 +556,30 @@ class Hero extends ActiveActor
 	}
 
 	shoot(){
-		console.log("Clicked on shoot");
+		let groundBlockToShoot = null;
+		let xx = 0;
+		let yy = this.y+1;
+		if(super.left()){
+			xx = this.x-1;
+			if(xx>0){
+				groundBlockToShoot = control.world[xx][yy];
+				if(groundBlockToShoot.destroyable){
+					this.imageName = "hero_shoots_left";
+					groundBlockToShoot.hide();
+				}
+			}
+		}else{
+			xx = this.x+1;
+			if(xx<WORLD_WIDTH){
+				groundBlockToShoot = control.world[xx][yy];
+				if(groundBlockToShoot.destroyable){
+					this.imageName = "hero_shoots_right";
+					groundBlockToShoot.hide();
+				}
+			}
+		}
 		//control.world[this.x+1][this.y + 1];
-		
+		/*
 		console.log(control.world[this.x+1][this.y + 1]);
 		if(super.left()){
 				control.world[this.x+1][this.y+1].hide();
@@ -563,7 +588,7 @@ class Hero extends ActiveActor
 		}else{
 				control.world[this.x+1][this.y+1].hide();
 				console.log();
-		}
+		} */
 	}
 }
 
