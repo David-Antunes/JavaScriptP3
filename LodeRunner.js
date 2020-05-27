@@ -550,6 +550,7 @@ class Hero extends ActiveActor
 					super.hide();
 					super.move(dx,dy);
 					this.showAnimation();
+					super.show();
 				}
 			}
 		}
@@ -601,6 +602,7 @@ class Robot extends ActiveActor
 		super.name = "robot";
 		this.eatable = false;
 		this.overlap = false;
+		this.timer = 0;
 	}
 
 	getHeroDir()
@@ -619,10 +621,140 @@ class Robot extends ActiveActor
 		return dir;
 	}
 
+	//funcao booleana para verificar se que verifica se ha possibilidade de haver objetos a frente
+	isThereNext(dx,dy){
+		let tx = this.x+dx;
+		let ty = this.y+dy;
+		if(tx>0&&tx<WORLD_WIDTH&&ty>0&&ty<WORLD_HEIGHT){
+			return true;
+		}
+		return false;
+	}
+
+	showAnimation()
+	{
+		let curBlock = control.world[this.x][this.y];
+		let groundBlock = control.world[this.x][this.y + 1];
+
+		switch(curBlock.name)
+					{
+						case "ladder": 
+							if(this.imageName == "robot_on_ladder_left")
+								this.imageName = "robot_on_ladder_right";
+							else if(this.imageName == "hero_on_ladder_right")
+								this.imageName = "robot_on_ladder_left";
+							else
+							{
+								if(this.direction[0] == -1) 
+									this.imageName = "robot_on_ladder_left";
+								else
+									this.imageName = "robot_on_ladder_right";
+							}
+
+						break;
+						case "empty":
+							if(curBlock == empty && groundBlock != empty )
+							{
+								if(this.direction[0] == -1 || this.direction[0] == 0) 
+								this.imageName = 'robot_runs_left';
+								else
+								this.imageName = 'robot_runs_right';
+							} 
+							else 
+							{
+								if(this.direction[0] == -1) 
+								this.imageName = 'robot_falls_left';
+								else
+								this.imageName = 'robot_falls_right';
+							}
+
+						break;
+
+						case "rope":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'robot_on_rope_left';
+							else
+								this.imageName = 'robot_on_rope_right';	
+
+						break;
+
+						case "chimney":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'robot_falls_left';
+							else
+								this.imageName = 'robot_runs_right';	
+
+						break;
+					}
+					super.show();
+	}
+
 	animation()
 	{
+	// Recebe input
+		let [dx, dy] = this.getHeroDir();
 		
-	}
+
+		let nextBlock = control.world[this.x + dx][this.y + dy];
+		let curBlock = control.world[this.x][this.y];
+		let groundBlock = control.world[this.x][this.y + 1];
+
+		// Verifica se não esta restringido
+		if(curBlock.constraint || groundBlock.constraint)
+		{
+			let dir;
+			// Recebe a direcao para percorrer
+			if(curBlock.constraint)
+				dir = curBlock.checkConstraint();
+			else
+				dir = groundBlock.checkConstraint();
+
+			super.hide();
+			super.move(dir[0],dir[1]);
+			this.showAnimation();
+		}
+		// Verifica se nao esta a cair
+		
+		else if(!super.hasGround() && (curBlock == empty))
+		{	
+			super.hide();
+			super.move(0,1);
+			this.showAnimation();
+		}
+		// Tenta Mover
+		else
+		{
+			if(this.timer < 0)
+			{
+				this.timer--;
+				return;
+			} else{
+				this.timer = 24;
+			}
+
+				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
+				if(!curBlock.moveOutFrom(0,dy))
+					dy = 0;
+				else if(nextBlock!=null && !nextBlock.moveInto(0,dy))
+					dy = 0;
+				else
+				{
+					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
+					if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
+						return;
+
+					// MUDA DE POSICAO
+					if(dy != 0)
+						dx = 0;
+					super.hide();
+					super.move(dx,dy);
+					this.showAnimation();
+					super.show();
+				}
+			}
+		}
 }
 
 
