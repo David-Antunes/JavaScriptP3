@@ -177,14 +177,11 @@ class ActiveActor extends Actor
 			return;
 		else
 		{
-			this.hide();
 			super.move(dx,dy);
 			if(dx == 1 ||dx == -1)
 				this.direction[0] = dx;
 			if(dy == 1 || dy == -1)
 				this.direction[1] = dy;
-			this.show();
-			console.log([this.x,this.y]);
 		}
 	}
 
@@ -408,6 +405,7 @@ class Hero extends ActiveActor
 		super.name = "hero";
 		hero = this;
 		this.eatable = true;
+		super.show();
 	}
 	//funcao booleana para verificar se que verifica se ha possibilidade de haver objetos a frente
 	isThereNext(dx,dy){
@@ -418,6 +416,67 @@ class Hero extends ActiveActor
 		}
 		return false;
 	}
+
+	showAnimation()
+	{
+		let curBlock = control.world[this.x][this.y];
+		let groundBlock = control.world[this.x][this.y + 1];
+
+		switch(curBlock.name)
+					{
+						case "ladder": 
+							if(this.imageName == "hero_on_ladder_left")
+								this.imageName = "hero_on_ladder_right";
+							else if(this.imageName == "hero_on_ladder_right")
+								this.imageName = "hero_on_ladder_left";
+							else
+							{
+								if(this.direction[0] == -1) 
+									this.imageName = "hero_on_ladder_left";
+								else
+									this.imageName = "hero_on_ladder_right";
+							}
+
+						break;
+						case "empty":
+							if(curBlock == empty && groundBlock != empty )
+							{
+								if(this.direction[0] == -1 || this.direction[0] == 0) 
+								this.imageName = 'hero_runs_left';
+								else
+								this.imageName = 'hero_runs_right';
+							} 
+							else 
+							{
+								if(this.direction[0] == -1) 
+								this.imageName = 'hero_falls_left';
+								else
+								this.imageName = 'hero_falls_right';
+							}
+
+						break;
+
+						case "rope":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'hero_on_rope_left';
+							else
+								this.imageName = 'hero_on_rope_right';	
+
+						break;
+
+						case "chimney":
+
+							if(this.direction[0] == -1) 
+								this.imageName = 'hero_falls_left';
+							else
+								this.imageName = 'hero_runs_right';	
+
+						break;
+					}
+					super.show();
+	}
+
 	animation()
 	{
 	// Recebe input
@@ -453,18 +512,17 @@ class Hero extends ActiveActor
 			else
 				dir = groundBlock.checkConstraint();
 
+			super.hide();
 			super.move(dir[0],dir[1]);
+			this.showAnimation();
 		}
 		// Verifica se nao esta a cair
 		
 		else if(!super.hasGround() && (curBlock == empty))
-		{
-			if(super.left())
-				this.imageName = "hero_falls_left";
-			else
-				this.imageName = "hero_falls_right";
-			
+		{	
+			super.hide();
 			super.move(0,1);
+			this.showAnimation();
 		}
 		// Tenta Mover
 		else
@@ -488,74 +546,17 @@ class Hero extends ActiveActor
 					if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
 						return;
 
-					// VERIFICA QUAL E O BLOCO SEGUINTE E GERA A CORRETA ANIMACAO
-					switch(nextBlock.name)
-					{
-						case "ladder": 
-							if(this.imageName == "hero_on_ladder_left")
-								this.imageName = "hero_on_ladder_right";
-							else if(this.imageName == "hero_on_ladder_right")
-								this.imageName = "hero_on_ladder_left";
-							else
-							{
-								if(dx==-1 && dy==0) 
-									this.imageName = "hero_on_ladder_left";
-								else
-									this.imageName = "hero_on_ladder_right";
-							}
-
-						break;
-						case "empty":
-							if(nextBlock == empty && groundBlock != empty && curBlock == empty)
-							
-							{
-								if(dx == -1) 
-								this.imageName = 'hero_runs_left';
-								else
-								this.imageName = 'hero_runs_right';
-							} 
-							else if(nextBlock == empty && groundBlock != empty && curBlock != empty)
-							{
-								// Procura o proximo chao
-								let nextGround = control.world[this.x + dx][(this.y - 1 - dy)];
-								let nextdir = dx;
-								
-								//Se o chao for uma escada retorna a direcao do boneco Senao e a direcao dada
-								if(nextGround == curBlock)
-									nextdir = this.direction[0];
-
-								if(nextdir == -1) 
-								this.imageName = 'hero_runs_left';
-								else
-								this.imageName = 'hero_runs_right';
-							} 
-							else
-							{
-								if(super.left()) 
-								this.imageName = 'hero_falls_left';
-								else
-								this.imageName = 'hero_falls_right';
-							}
-
-						break;
-
-						case "rope":
-
-							if(dx==-1 && dy==0) 
-								this.imageName = 'hero_on_rope_left';
-							else
-								this.imageName = 'hero_on_rope_right';	
-
-						break;
-					}
 					// MUDA DE POSICAO
+					super.hide();
 					super.move(dx,dy);
+					this.showAnimation();
 				}
 			}
 		}
 	}
 
-	shoot(){
+	shoot()
+	{
 		let groundBlockToShoot = null;
 		let xx = 0;
 		let yy = this.y+1;
