@@ -635,10 +635,11 @@ class Robot extends ActiveActor
 	isThereNext(dx,dy){
 		let tx = this.x+dx;
 		let ty = this.y+dy;
-		if(tx>0&&tx<WORLD_WIDTH&&ty>0&&ty<WORLD_HEIGHT){
+		if(ObjectInCanvas(tx,ty)){
 			return true;
 		}
 		return false;
+
 	}
 
 	showAnimation()
@@ -703,6 +704,7 @@ class Robot extends ActiveActor
 
 	animation()
 	{
+		console.log([this.x,this.y]);
 	// Recebe input
 		let [dx, dy] = this.getHeroDir();
 		
@@ -736,14 +738,15 @@ class Robot extends ActiveActor
 		// Tenta Mover
 		else
 		{
-			if(this.timer < 0)
+			if(this.timer > 0)
 			{
 				this.timer--;
 				return;
-			} else{
+			} 
+			else
+			{
 				this.timer = 24;
-			}
-
+				
 				// VERIFICA SE CONSEGUE MUDAR PARA A PROXIMA POSICAO
 				if(!curBlock.moveOutFrom(0,dy))
 					dy = 0;
@@ -753,18 +756,19 @@ class Robot extends ActiveActor
 				{
 					// ISTO E PARA IMPEDIR QUE ELE DE UM SALTO
 					if((nextBlock ==null) || nextBlock == empty && curBlock == empty && dy == -1)
-						return;
-
+					return;
+					
 					// MUDA DE POSICAO
 					if(dy != 0)
 						dx = 0;
+				}
 					super.hide();
 					super.move(dx,dy);
 					this.showAnimation();
 					super.show();
-				}
 			}
 		}
+	}
 }
 
 
