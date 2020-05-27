@@ -647,6 +647,7 @@ class Hero extends ActiveActor
 	countGold(){
 		//console.log(control.world[this.x][this.y]);
 		if(control.world[this.x][this.y].eatable){
+			console.log("Count gold");
 			control.gold--;
 			console.log("Count gold "+control.gold);
 			if(control.gold===0){
@@ -892,6 +893,7 @@ class GameControl
 				GameFactory.actorFromCode(map[y][x], x, y);
 				if(map[y][x]==='o'){
 					control.gold++;
+					console.log("Gold "+x+" "+y);
 				}
 			}
 	}
