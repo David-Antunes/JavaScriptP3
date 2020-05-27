@@ -116,6 +116,11 @@ class PassiveActor extends Actor
 	{
 		return [0,0];
 	}
+
+	animation()
+	{
+		
+	}
 }
 
 class ActiveActor extends Actor 
@@ -204,28 +209,20 @@ class Brick extends PassiveActor
 		super.name = "brick";
 		super.setDestroyable(true);
 		this.destroyed = false;
-		this.time = 0;
-		this.toStop = 0;
+		this.timer = 0;
 	}
 
 	show() 
 	{
 		super.show();
-		control.worldActive[this.x][this.y] = empty;
 		super.setOverlap(false);
 		this.destroyed=false;
 	}
 
 	hide() 
 	{
-		console.log(this.x+" "+this.y);
-		control.worldActive[this.x][this.y] = this;
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
-		this.time=control.time;
-		this.toStop = this.time+100;
-		super.setOverlap(true);
-		this.destroyed = true;
 	}
 
 	moveInto(dx, dy)
@@ -247,13 +244,23 @@ class Brick extends PassiveActor
 	}
 
 	animation(){
-		if(this.destroyed===true){
-			if(this.time >=this.toStop){
+		if(this.destroyed == true){
+			if(this.timer == 0){
 				this.show();
 			}else{
-				this.time ++;
+				this.timer--;
 			}
 		}
+	}
+
+	destroyBlock()
+	{
+		if(this.timer > 0)
+			return;
+		this.timer = 24;
+		super.setOverlap(true);
+		this.destroyed = true;
+		empty.draw(this.x, this.y);
 	}
 }
 
@@ -568,7 +575,7 @@ class Hero extends ActiveActor
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
 					this.imageName = "hero_shoots_left";
-					groundBlockToShoot.hide();
+					groundBlockToShoot.destroyBlock();
 				}
 			}
 		}else{
@@ -577,7 +584,7 @@ class Hero extends ActiveActor
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
 					this.imageName = "hero_shoots_right";
-					groundBlockToShoot.hide();
+					groundBlockToShoot.destroyBlock();
 				}
 			}
 		}
@@ -864,11 +871,13 @@ class GameControl
 		control.time++;
 		for(let x=0 ; x < WORLD_WIDTH ; x++)
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
-				let a = control.worldActive[x][y];
-				if( a.time < control.time ) {
-					a.time = control.time;
-					a.animation();	
+				let active = control.worldActive[x][y];
+				let passive = control.world[x][y];
+				if( active.time < control.time ) {
+					active.time = control.time;
+					active.animation();	
 				}
+					passive.animation();	
             }
 	}
 
@@ -877,7 +886,9 @@ class GameControl
 
 	keyUpEvent(k) {}
 
-
+	// Devolve o objecto que se encontra encontra no mundo ativo
+	// Se nao houver objeto no mundo ativo
+	// Devolve o objecto do mundo passivo
 	getObject(x,y)
 	{
 		if(!ObjectInCanvas(x,y))
@@ -885,6 +896,8 @@ class GameControl
 		else if(control.worldActive[x][y] != empty)
 			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
 	}
+
+	// Devolve o objecto que se encontra no mundo passivo
 	getPassiveObject(x,y)
 	{
 		if(!ObjectInCanvas(x,y))
@@ -892,6 +905,7 @@ class GameControl
 	else
 		return control.world[x][y];
 	}
+	//Devolve o chao das coordenadas x e y
 	getGroundObject(x,y)
 	{
 		let groundY = y+1;
@@ -899,6 +913,16 @@ class GameControl
 			return new WorldBorder();
 		else this.getObject(x, groundY);
 	}
+
+	EndGame()
+	{
+		if(isHeroStuck())
+			control.end = 1;
+		else(hero.x == -1 && hero.y == -1)
+			control.end = 1;
+		
+	}
+	isHeroStuck() {}
 }
 
 
