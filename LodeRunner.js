@@ -223,7 +223,6 @@ class Brick extends PassiveActor
 
 	hide() 
 	{
-		control.worldActive[this.x][this.y] = this;
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
