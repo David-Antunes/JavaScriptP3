@@ -64,6 +64,10 @@ class PassiveActor extends Actor {
 		return false;
 	}
 
+	hardObject() {
+		return false;
+	}
+
 	show() {
 		control.world[this.x][this.y] = this;
 		this.draw(this.x, this.y);
@@ -176,6 +180,7 @@ class ActiveActor extends Actor {
 		let res= false;
 		if(control.world[this.x][this.y].passthrough){
 			if(downObject !=null && (downObject.passthrough||downObject.moveOnUnder)){
+				
 				this.move(0,1);
 				res = true;
 			}
@@ -188,6 +193,7 @@ class ActiveActor extends Actor {
 		
 		let xx = this.x+dx;
 		let yy = this.y+dy;
+		
 		//se nao estiver num objeto que permite andar na vertical
 		
 		if(dy===-1){
@@ -199,7 +205,7 @@ class ActiveActor extends Actor {
 			if(!control.world[this.x][this.y].moveOnY){
 				return;
 			}
-			if(control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY){
+			if(control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder){
 				this.move(dx,dy);
 				return;
 			}
@@ -227,12 +233,7 @@ class ActiveActor extends Actor {
 			//	alert('END OF THE GAME!');
 			//	location.reload();
 			//s}
-			if(currentWorldObject.eatable){
-				this.collectFood();
-				currentWorldObject.hide();
-				this.move(dx,dy);
-			}
-			else if (actorInNextStep.passthrough){
+			if (actorInNextStep.passthrough){
 				if(dy===0){
 					this.move(dx,dy);
 				}else if(currentWorldObject.moveOnY){
@@ -265,16 +266,17 @@ class ActiveActor extends Actor {
 	}
 
 	move(dx, dy) {
-		if(dx == 1 ||dx == -1){
+		if(dx != 0){
 			this.direction[0] = dx;
 		}
-		if(dy == 1 || dy == -1){
+		if(dy != 0){
 		this.direction[1] = dy;
 		}
 		this.hide();
 		this.x += dx;
 		this.y += dy;
 		this.show();
+		this.collectFood();
 	}
 	show(){
 		control.worldActive[this.x][this.y] = this;
@@ -318,6 +320,12 @@ class Brick extends PassiveActor {
 	
 	}, 4000);
 	}
+
+		
+	hardObject()
+	{
+		return true;
+	}
 }
 
 class Chimney extends PassiveActor {
@@ -353,7 +361,6 @@ class Ladder extends PassiveActor {
 		super.moveOnY=true;
 		this.hide();
 		this.visible = false;
-		this.passthrough.true;
 	}
 
 	holdsAShot() {
@@ -371,7 +378,7 @@ class Ladder extends PassiveActor {
 		this.show();
 		this.visible=true;
 		
-    }
+	}
 }
 
 class Rope extends PassiveActor {
@@ -389,6 +396,11 @@ class Stone extends PassiveActor {
 	holdsAShot() {
 		return true;
 	}
+	
+	hardObject()
+	{
+		return true;
+	}
 }
 
 class Hero extends ActiveActor {
@@ -397,7 +409,7 @@ class Hero extends ActiveActor {
 		this.falling = false;
 		this.good=true;
 		this.name = 'hero';
-		this.direction = [0,0];
+		this.direction = [-1,0];
 		this.lastStrive = null;
 	}
 
@@ -417,19 +429,15 @@ class Hero extends ActiveActor {
 	}
 	animation() {
 		if(this.actorFall(control.world[this.x][this.y+1])){
-			let count = 0;
 			return;
+		} else
+		{
+			let k = control.getKey();
+			if( k == ' ' ) { this.shoot(); this.show(); return; }
+			let [dx, dy] = k;
+			super.animation(dx,dy);
 		}
-		let k = control.getKey();
-		if( k == ' ' ) { this.shoot(); this.show(); return; }
-		if(k==null){
-			this.actorFall(control.world[this.x][this.y+1]);
-			return;
-		};
 		
-		let [dx, dy] = k;
-		
-		super.animation(dx,dy);
 	}
 	//DAVID
 
@@ -448,13 +456,13 @@ class Hero extends ActiveActor {
 		if(currentBlock != empty)
 			return;
 		// Se o bloco atras do heroi nao for vazio nao pode disparar
-		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
+		else if(BlockBehindHero.hardObject())
 			return;
 		// Se o chao atras nao aguenta com o recuo do heroi
 		else if(!GroundBehindHero.holdsAShot())
 			return;
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
-		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
+		else if(BlockFrontHero.hardObject())
 			return;
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
 		else if(!BlockToShoot.destroyable)
@@ -479,8 +487,10 @@ class Hero extends ActiveActor {
 	}
 
 	collectFood(){
-		if(control.food>0){
+		if(control.world[this.x][this.y].eatable){
 			control.food--;
+			control.world[this.x][this.y].hide();
+		}
 			if(control.food===0){
 				let size = control.invisibleChairs.length;
 				let arr = control.invisibleChairs;
@@ -491,7 +501,6 @@ class Hero extends ActiveActor {
 				this.lastStrive = arr[0];
 			}
 			console.log("ate");
-		}
 	}
 }
 
