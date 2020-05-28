@@ -301,14 +301,14 @@ class Brick extends PassiveActor {
 	destroyBlock()
 	{
 		this.hide();
-		setTimeout(()=>{
+	setTimeout(()=>{
 		this.show();
 		if(control.worldActive[this.x][this.y].good){
 			location.reload();	
 		}
 		control.worldActive[this.x][this.y]=empty
 	
-		}, 4000);
+	}, 4000);
 	}
 }
 
@@ -393,12 +393,8 @@ class Hero extends ActiveActor {
 			hero.hide();
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
-			control.food=0;
 			console.log(control.level);
-			control.world = control.createMatrix();
-			control.worldActive = control.createMatrix();
 			control.loadLevel(control.level);
-
 		}
 	}
 	animation() {
@@ -427,11 +423,7 @@ class Hero extends ActiveActor {
 		let yy = this.y+1;
 		if(super.left()){
 			xx = this.x-1;
-			console.log(this);
-			console.log(control.world[xx][this.y].passthrough);
-			console.log(control.world[xx][this.y]);
-			//se o objeto em cima do objeto a destruir for vazio
-			if(xx>0&&control.world[xx][this.y]==empty){
+			if(xx>0&&control.world[xx][this.y-1]===empty){
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
 					//this.imageName = "hero_shoots_left";
@@ -440,7 +432,7 @@ class Hero extends ActiveActor {
 			}
 		}else{
 			xx = this.x+1;
-			if(xx<WORLD_WIDTH&&control.world[xx][this.y]==empty){
+			if(xx<WORLD_WIDTH&&control.world[xx][this.y-1]===empty){
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
 					this.imageName = "hero_shoots_right";
@@ -455,11 +447,11 @@ class Hero extends ActiveActor {
 			if(control.food===0){
 				let size = control.invisibleChairs.length;
 				let arr = control.invisibleChairs;
+				for (let index = 0; index < size; index++) {
+					arr[index].makeVisible();
+					console.log('KKK');
+				}
 				this.lastStrive = arr[0];
-				while(size>0){
-					arr.pop().makeVisible();
-					size--;
-				}			
 			}
 			console.log("ate");
 		}
@@ -588,7 +580,19 @@ class GameControl {
 		}
 		return matrix;
 	}
+
+	cleanMatrixes()
+	{
+		for(let x=0 ; x < WORLD_WIDTH ; x++)
+			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
+				this.world[x][y].hide();
+				this.worldActive[x][y].hide();
+			}
+			this.world = this.createMatrix();
+			this.worldActive = this.createMatrix();
+	}
 	loadLevel(level) {
+		this.cleanMatrixes();
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
