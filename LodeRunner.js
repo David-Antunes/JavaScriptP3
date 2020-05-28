@@ -60,6 +60,10 @@ class PassiveActor extends Actor {
 		this.name =imageName;
 	}
 
+	holdsAShot() {
+		return false;
+	}
+
 	show() {
 		control.world[this.x][this.y] = this;
 		this.draw(this.x, this.y);
@@ -291,6 +295,10 @@ class Brick extends PassiveActor {
 		this.destroyable =true;
 		this.timer = 0;
 	}
+
+	holdsAShot() {
+		return true;
+	}
 	
 	hide() 
 	{
@@ -345,7 +353,13 @@ class Ladder extends PassiveActor {
 		super.moveOnY=true;
 		this.hide();
 		this.visible = false;
+		this.passthrough.true;
 	}
+
+	holdsAShot() {
+		return true;
+	}
+
 	/*
 	hide(){
 		control.world[this.x][this.y] = empty;
@@ -370,6 +384,10 @@ class Stone extends PassiveActor {
 	constructor(x, y) { 
 		super(x, y, "stone");
 		super.moveOnX=true;
+	}
+
+	holdsAShot() {
+		return true;
 	}
 }
 
@@ -403,7 +421,7 @@ class Hero extends ActiveActor {
 			return;
 		}
 		let k = control.getKey();
-		if( k == ' ' ) { this.shoot() ; return; }
+		if( k == ' ' ) { this.shoot(); this.show(); return; }
 		if(k==null){
 			this.actorFall(control.world[this.x][this.y+1]);
 			return;
@@ -418,29 +436,48 @@ class Hero extends ActiveActor {
 	
 	shoot()
 	{
-		let groundBlockToShoot = null;
-		let xx = 0;
-		let yy = this.y+1;
-		if(super.left()){
-			xx = this.x-1;
-			if(xx>0&&control.world[xx][this.y-1]===empty){
-				groundBlockToShoot = control.world[xx][yy];
-				if(groundBlockToShoot.destroyable){
-					//this.imageName = "hero_shoots_left";
-					groundBlockToShoot.destroyBlock();
-				}
+		// Busca o bloco do chao que esta na direcao do heroi
+
+		let BlockToShoot = control.getObject(this.x + this.direction[0], this.y + 1);
+		let BlockFrontHero = control.getObject(this.x + this.direction[0], this.y);
+		let BlockBehindHero = control.getObject(this.x - this.direction[0], this.y);
+		let GroundBehindHero = control.getObject(this.x - this.direction[0], this.y + 1);
+		let currentBlock = control.world[this.x][this.y];
+
+		// Se o heroi nao esta numa posicao vazia nao pode disparar
+		if(currentBlock != empty)
+			return;
+		// Se o bloco atras do heroi nao for vazio nao pode disparar
+		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
+			return;
+		// Se o chao atras nao aguenta com o recuo do heroi
+		else if(!GroundBehindHero.holdsAShot())
+			return;
+		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
+		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
+			return;
+		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
+		else if(!BlockToShoot.destroyable)
+			return;
+		else
+		{
+			if(super.left())
+			{
+				this.imageName = "hero_shoots_left";
 			}
-		}else{
-			xx = this.x+1;
-			if(xx<WORLD_WIDTH&&control.world[xx][this.y-1]===empty){
-				groundBlockToShoot = control.world[xx][yy];
-				if(groundBlockToShoot.destroyable){
-					this.imageName = "hero_shoots_right";
-					groundBlockToShoot.destroyBlock();
-				}
+			else
+			{
+				this.imageName = "hero_shoots_right";
 			}
+			super.show();
+			//Move-se no sentido contrario
+			super.move(-this.direction[0], 0);
+			// Colocar o sentido de novo
+			this.direction[0] = -this.direction[0];
+			BlockToShoot.destroyBlock();
 		}
 	}
+
 	collectFood(){
 		if(control.food>0){
 			control.food--;
@@ -538,6 +575,24 @@ class Robot extends ActiveActor {
 
 
 // GAME CONTROL
+class WorldBorder extends Stone {
+	constructor()
+	{
+		super(-1,-1, "empty");
+		this.moveOnX = false;
+	}
+
+	hide() {}
+
+	show() {}
+
+	holdsAShot() {
+		return false;
+	}
+
+}
+
+
 
 class GameControl {
 	constructor() {
@@ -545,7 +600,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=2;
+		this.level=1;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -563,10 +618,10 @@ class GameControl {
 		
 		return true;
 	}
-	static getObject(x,y)
+	getObject(x,y)
 	{
 		if(!GameControl.ObjectInCanvas(x,y))
-			return WorldBorder;
+			return new WorldBorder();
 		else
 			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
 	}
