@@ -171,7 +171,7 @@ class ActiveActor extends Actor {
 	actorFall(downObject){
 		let res= false;
 		if(control.world[this.x][this.y].passthrough){
-			if(downObject !=null && (downObject.passthrough||downObject.moveOnUnder)){
+			if(downObject !=null && (downObject.passthrough || downObject.moveOnUnder)){
 				this.move(0,1);
 				res = true;
 			}
@@ -184,12 +184,8 @@ class ActiveActor extends Actor {
 		
 		let xx = this.x+dx;
 		let yy = this.y+dy;
-		//se nao estiver num objeto que permite andar na vertical
-		
-		if(dy===-1){
-			console.log(control.world[this.x][this.y].moveOnY);
-		}
 
+		//se nao estiver num objeto que permite andar na vertical
 		if(dy===-1){
 
 			if(!control.world[this.x][this.y].moveOnY){
@@ -211,10 +207,7 @@ class ActiveActor extends Actor {
 			this.move(0,1);
 			return;
 		}
-		//actor standing on a falling surface
-		if(this.actorFall(downObject)){
-			return;
-		}
+		
 		if(GameControl.ObjectInCanvas(xx,yy)){
 			let actorInNextStep = control.world[xx][yy];
 			let nextActiveActor = control.worldActive[xx][yy];
@@ -304,11 +297,11 @@ class Brick extends PassiveActor {
 		setTimeout(()=>{
 		this.show();
 		if(control.worldActive[this.x][this.y].good){
-			location.reload();	
+			//location.reload();	
 		}
 		control.worldActive[this.x][this.y]=empty
 	
-		}, 4000);
+		}, 20000);
 	}
 }
 
@@ -384,7 +377,6 @@ class Hero extends ActiveActor {
 	}
 
 	move(dx,dy){
-		
 		super.move(dx,dy);
 		super.showAnimation();
 		if(this.lastStrive===null){
@@ -400,10 +392,17 @@ class Hero extends ActiveActor {
 			control.loadLevel(control.level);
 
 		}
+		console.log(this.x+ ' '+this.y);
+		console.log(control.world[this.x][this.y]);
 	}
 	animation() {
+		
+		if(control.world[this.x][this.y].eatable){
+			this.collectFood();
+		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
-			let count = 0;
+			console.log('TEM BURACO '+this.x + ' '+this.y)
+			console.log(control.world[this.x][this.y]);
 			return;
 		}
 		let k = control.getKey();
@@ -431,7 +430,7 @@ class Hero extends ActiveActor {
 			console.log(control.world[xx][this.y].passthrough);
 			console.log(control.world[xx][this.y]);
 			//se o objeto em cima do objeto a destruir for vazio
-			if(xx>0&&control.world[xx][this.y]==empty){
+			if(xx>0&&control.world[xx][this.y].passthrough){
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
 					//this.imageName = "hero_shoots_left";
@@ -440,10 +439,10 @@ class Hero extends ActiveActor {
 			}
 		}else{
 			xx = this.x+1;
-			if(xx<WORLD_WIDTH&&control.world[xx][this.y]==empty){
+			if(xx<WORLD_WIDTH&&control.world[xx][this.y].passthrough){
 				groundBlockToShoot = control.world[xx][yy];
 				if(groundBlockToShoot.destroyable){
-					this.imageName = "hero_shoots_right";
+					//this.imageName = "hero_shoots_right";
 					groundBlockToShoot.destroyBlock();
 				}
 			}
@@ -452,14 +451,17 @@ class Hero extends ActiveActor {
 	collectFood(){
 		if(control.food>0){
 			control.food--;
+			control.world[this.x][this.y].hide();
+			this.show();
 			if(control.food===0){
 				let size = control.invisibleChairs.length;
 				let arr = control.invisibleChairs;
 				this.lastStrive = arr[0];
+				
 				while(size>0){
 					arr.pop().makeVisible();
-					size--;
-				}			
+					size = size-1;
+				}		
 			}
 			console.log("ate");
 		}
@@ -511,6 +513,9 @@ class Robot extends ActiveActor {
 	animation()
 	{
 		// Recebe input
+		if(control.world[this.x][this.y].eatable){
+			this.collectFood();
+		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		}
@@ -553,7 +558,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=2;
+		this.level=3;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
