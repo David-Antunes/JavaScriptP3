@@ -34,6 +34,7 @@ class Actor {
 		this.show();
 		this.name = "";
 		this.visible=true;
+		this.eatable = false;
 	}
 	draw(x, y) {
 		control.ctx.drawImage(GameImages[this.imageName],
@@ -176,6 +177,7 @@ class ActiveActor extends Actor {
 					this.show();
 	}
 	collectFood(){}
+	
 	actorFall(downObject){
 		let res= false;
 		if(control.world[this.x][this.y].passthrough){
@@ -267,7 +269,6 @@ class ActiveActor extends Actor {
 		this.x += dx;
 		this.y += dy;
 		this.show();
-		this.collectFood();
 	}
 	show(){
 		control.worldActive[this.x][this.y] = this;
@@ -339,7 +340,48 @@ class Gold extends PassiveActor {
 	super(x, y, "gold");
 	super.eatable=true;
 	super.passthrough=true;
+	this.timeToDrop = 0;
+
 	}
+
+	// SE ISTO E CHAMADO O OURO DESAPARECE E ENTRA EM CICLO
+	eaten()
+	{
+		super.hide();
+		this.timeToDrop = 128;
+	}
+
+	// E FEITA A PERGUNTA AO OURO SE PODE VOLTAR AO MAPA
+	CanIDropU(x,y)
+	{
+		// SE O TEMPO AINDA NAO ACABOU 
+		if(this.timeToDrop > 0)
+		{
+			// DIMINUI
+			this.timeToDrop--;
+			return false;
+		} else {
+			// VERIFICA SE PODE VOLTAR AO MAPA SE TIVER UM TIJOLO OU PEDRA POR BAIXO
+			if(control.getObject(x, y + 1).hardObject())
+				this.drop(x,y);
+			else
+			// SE NAO FOR POSSIVEL O TIMER VOLTA A AUMENTAR MAS POUCO
+			// O TEMPO E MAIS PEQUENO PORQUE E PARA TENTAR EJATAR ASSIM QUE O ROBOT ESTIVER NUM TIJOLO OU PEDRA
+				this.timeToDrop = 16;
+		}
+	}
+
+
+	// LIBERTA O OURO NA POSICAO DADA
+	// PODES USAR ISTO PARA QUANDO O ROBOT ESTIVER STUCK
+	drop(x,y)
+	{
+		this.x = x;
+		this.y = y;
+		this.timeToDrop = 0;
+		this.show();
+	}
+
 }
 
 class Invalid extends PassiveActor {
@@ -402,6 +444,7 @@ class Hero extends ActiveActor {
 		this.name = 'hero';
 		this.direction = [-1,0];
 		this.lastStrive = null;
+		this.eatable = true;
 	}
 
 	move(dx,dy){
@@ -430,11 +473,21 @@ class Hero extends ActiveActor {
 		{
 			let k = control.getKey();
 			if( k == ' ' ) { this.shoot(); this.show(); return; }
-			let [dx, dy] = k;
-			super.animation(dx,dy);
+			if(k == null)
+				return;
+			else
+			{
+				let [dx, dy] = k;
+				super.animation(dx,dy);
+			}
 		}
-		
 	}
+		
+	eaten()
+	{
+		alert("U LOST >:(")
+	}
+
 	//DAVID
 
 	
@@ -509,6 +562,8 @@ class Robot extends ActiveActor {
 		this.tempFood=null;
 		this.sec = 0;
 		this.alt=false;
+		this.direction[1,0];
+		this.eatable = false;
 	}
 	
 	move(dx,dy){
@@ -552,7 +607,7 @@ class Robot extends ActiveActor {
 			return;
 		}
 		if(this.sec<3){ //os guardas apenas movem se de 15 em 15 ciclos
-			//this.sec++;
+			this.sec++;
 		}
 		else{
 			let [dx, dy] = this.getHeroDir();
@@ -570,14 +625,40 @@ class Robot extends ActiveActor {
 			}
 		}
 	}
+
+
+	// TENTA COMER
 	collectFood(){
+		//SE NAO TIVER COMIDA GUARDADA
 		if(this.tempFood==null){
+			//GUARDA A COMIDA
 			this.tempFood = control.world[this.x][this.y];
+			//TESTA SE NAO FOR COMIVEL
+			if(!this.tempFood.eatable)
+			{
+
+				this.tempFood = null;
+				return;
+			}
+			// SE CHEGOU AQUI E PORQUE PODE SER COMIDA
+			// ENTAO O OURO VAI LHE SER DITO QUE FOI COMIDO
+			this.tempFood.eaten();
+		} else
+		{
+			// PERGUNTA AO OURO GUARDADO SE O JA PODE LIBERTAR
+			if(!this.tempFood.CanIDropU())
+				return;
+			else
+			{
+				// LIBERTA O OURO
+				this.tempFood.drop(this.x,this.y);
+				this.tempFood = null;
+			}
 		}
 	}
-	dropFood(){
-		this.tempFood = null;
-	}
+
+	eaten() {}
+
 }
 
 
@@ -608,7 +689,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=1;
+		this.level=2;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
