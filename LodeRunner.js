@@ -60,6 +60,7 @@ class PassiveActor extends Actor {
 		this.allowJumpUp = false;
 		this.allowMoveInside = false;
 		this.name =imageName;
+		this.manMade = false;
 	}
 
 	holdsAShot() {
@@ -335,6 +336,7 @@ class Brick extends PassiveActor {
 	destroyBlock()
 	{
 		this.hide(); 
+		control.world[this.x][this.y].manMade = true;
 		setTimeout(()=>{
 		this.show();
 		if(control.worldActive[this.x][this.y]!=empty){
@@ -387,7 +389,7 @@ class Chimney extends PassiveActor {
 
 class Empty extends PassiveActor {
 	constructor() { super(-1, -1, "empty");
-	super.passthrough = true;	 
+	super.passthrough = true;
 }
 	show() {}
 	hide() {}
@@ -603,6 +605,7 @@ class Hero extends ActiveActor {
 		if(control.world[this.x][this.y].eatable){
 			control.food--;
 			control.world[this.x][this.y].hide();
+			this.show();
 		}
 			if(control.food===0){
 				let size = control.invisibleChairs.length;
@@ -627,6 +630,7 @@ class Robot extends ActiveActor {
 		this.direction[1,0];
 		this.eatable = false;
 		this.notTrapped = true;
+		this.stuck = null;
 	}
 	
 	dropFood(yy){
@@ -659,19 +663,15 @@ class Robot extends ActiveActor {
 			return;
 		}
 		//se o robot estiver preso no buraco,
-		if(this.notTrapped&&this.trappedInHole()){
+		if(this.notTrapped&& this.trappedInHole()){
 			if(this.tempFood!=null){
 				this.dropFood(this.y-1);
 			}
 			this.notTrapped=false;
-			setTimeout(()=>{
+			this.stuck = setTimeout(()=>{
 				if(!this.notTrapped){
-					if(control.world[this.x][this.y]==empty){
-						let [dx, dy] = this.getHeroDir();
-						if(control.world[this.x][this.y-1]==empty){
-							super.move(0,-1);
-						}
-						super.move(dx,0);
+					if(control.world[this.x][this.y-1]==empty){
+						super.move(0,-1);
 					}
 					this.notTrapped=true;
 				} 
@@ -742,12 +742,7 @@ class Robot extends ActiveActor {
 			//GUARDA A COMIDA
 			this.tempFood = control.world[this.x][this.y];
 			this.tempFood.hide();
-			setTimeout(()=>{
-				if(this.tempFood!=null){
-					console.log("Deixa o gold please!!");
-					this.dropFood(this.y);
-				}
-			},3000);
+			this.show();
 			/*
 			//TESTA SE NAO FOR COMIVEL
 			if(!this.tempFood.eatable)
