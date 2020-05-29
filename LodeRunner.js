@@ -146,8 +146,6 @@ class ActiveActor extends Actor {
 						case "empty":
 							if(groundBlock==null || (groundBlock!= empty  && !groundBlock.passthrough))
 							{
-								console.log(groundBlock);
-								console.log(groundBlock + this.direction[0] + " direction ");
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = name + '_runs_left';
 								else
@@ -747,7 +745,6 @@ class Robot extends ActiveActor {
 	
 	animation()
 	{
-		return;
 		if(control.world[this.x][this.y].destroyed) {
 			if(this.trapped())
 			return;
@@ -828,7 +825,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=2;
+		this.level=3;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
