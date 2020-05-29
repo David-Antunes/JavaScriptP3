@@ -681,6 +681,7 @@ class Robot extends ActiveActor {
 			{
 				this.move(0,-1);
 				this.notTrapped = false;
+				this.alt = true;
 				this.sec = 3;
 			}
 			else
