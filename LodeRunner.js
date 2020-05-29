@@ -364,7 +364,6 @@ class Brick extends PassiveActor {
 				control.worldActive[this.x][this.y] = empty;
 				newA.show();
 				newA.reborn();
-				console.log("Diferente de empty "+xx +" "+ yy);
 			}
 		}
 
@@ -520,6 +519,7 @@ class Hero extends ActiveActor {
 			hero.hide();
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
+			control.loadLevel(control.level);
 			//console.log(control.level);
 			//control.loadLevel(control.level);
 		}
@@ -632,16 +632,32 @@ class Robot extends ActiveActor {
 		this.direction[1,0];
 		this.eatable = false;
 		this.notTrapped = true;
+		this.timeToDropFood = 0;
 	}
 	
 	dropFood(yy){
+		/*
+		let xPos = 0;
+		//se nao estiver num buraco, deixa o ouro atras
+		if(this.y===yy){
+			xPos = this.x-this.direction[0];
+		}else{
+			xPos = this.x;						
+		} */
 		let ob22 = control.world[this.x][yy];
-				if(ob22==empty){
-					control.world[this.x][yy]=this.tempFood;
+				if(ob22==empty){					
+					//so deixa o ouro em lugares vazios
+					if(control.world[this.x][yy]===empty){
+						control.world[this.x][yy]=this.tempFood;
+					}else{
+						console.log("Nao pode deixar");
+						return;
+					}
 					this.tempFood.x = this.x;
 					this.tempFood.y = yy;
 					this.tempFood.show();
 					this.tempFood = null;
+					this.timeToDropFood = 0;
 				}
 	}
 
@@ -649,13 +665,27 @@ class Robot extends ActiveActor {
 		let robotAhead = control.worldActive[this.x+dx][this.y+dy];
 		//se o robot a frente nao e o heroi, entao avanca
 		if(robotAhead==empty || robotAhead.good){ 
+			
+			if(this.timeToDropFood>0){
+				this.timeToDropFood--;
+			}else if(this.tempFood!=null) {
+				if(control.world[this.x][this.y]==empty&&control.world[this.x][this.y+1]!=empty){
+					this.tempFood.x = this.x;
+					this.tempFood.y = this.y;
+					this.tempFood.show();
+					this.tempFood = null;
+					this.timeToDropFood = 0;
+				}else{
+					this.timeToDropFood++;
+				}
+			}
 			super.move(dx,dy);
 			super.showAnimation();
 		}else{
 			return;
 		}
 
-		//console.log(this.x+ ' '+this.y + 'robot pos');
+		
 	}
 	reborn(){
 		this.notTrapped = true;
@@ -671,7 +701,6 @@ class Robot extends ActiveActor {
 			this.dropFood(this.y - 1);
 
 			this.sec++;
-			console.log(this.sec);
 			return true;
 		}
 		else
@@ -745,7 +774,9 @@ class Robot extends ActiveActor {
 			}
 		}
 	}
-
+	resetTimeTodropGold(){
+		this.timeToDropFood = rand(30);
+	}
 
 	// TENTA COMER
 	collectFood(){
@@ -755,38 +786,16 @@ class Robot extends ActiveActor {
 			this.tempFood = control.world[this.x][this.y];
 			this.tempFood.hide();
 			this.show();
+			this.resetTimeTodropGold();
 			/*
-			//TESTA SE NAO FOR COMIVEL
-			if(!this.tempFood.eatable)
-			{
-
-				this.tempFood = null;
-				return;
-			}*/
-
-			// SE CHEGOU AQUI E PORQUE PODE SER COMIDA
-			// ENTAO O OURO VAI LHE SER DITO QUE FOI COMIDO
-			//this.tempFood.eaten(); whyyy ?
-		} else
-		{
-			/*
-			// PERGUNTA AO OURO GUARDADO SE O JA PODE LIBERTAR
-			if(!this.tempFood.CanIDropU())
-				return;
-			else
-			{
-				// LIBERTA O OURO
-				this.tempFood.drop(this.x,this.y);
-				this.tempFood = null;
-			}*/
-
 			setTimeout(()=>{
 				if(this.tempFood!=null){
 					console.log("Deixa o gold please!!");
-					//this.dropFood(this.y);
+					this.dropFood(this.y);
 				}
 			},3000);
-		}
+			*/
+		} 
 	}
 
 	eaten() {}
