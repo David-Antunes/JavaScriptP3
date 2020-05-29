@@ -527,6 +527,8 @@ class Hero extends ActiveActor {
 			hero.hide();
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
+			control.cleanMatrixes();
+			control.createWordsMatrix();
 			control.loadLevel(control.level);
 		}
 		//console.log(this.x+ ' '+this.y + 'hero pos');
@@ -537,9 +539,7 @@ class Hero extends ActiveActor {
 		if(control.world[this.x][this.y].eatable){
 			this.collectFood();
 		}
-		if(this.y+1>=WORLD_HEIGHT){
-			control.food =90;
-		}
+		
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		} else
@@ -830,7 +830,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=3;
+		this.level=4;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -873,15 +873,14 @@ class GameControl {
 				this.world[x][y].hide();
 				this.worldActive[x][y].hide();
 			}
-			this.world = this.createMatrix();
-			this.worldActive = this.createMatrix();
 		}
-		while(control.invisibleChairs.pop()!=null){
-		}
-		console.log("pop is done!!");
 	}
+	createWordsMatrix(){
+		this.world = this.createMatrix();
+		this.worldActive = this.createMatrix();
+	}
+	
 	loadLevel(level) {
-		this.cleanMatrixes();
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
