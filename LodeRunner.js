@@ -58,6 +58,7 @@ class PassiveActor extends Actor {
 		this.passthrough = false;
 		this.destroyable = false;
 		this.allowJumpUp = false;
+		this.allowMoveInside = false;
 		this.name =imageName;
 	}
 
@@ -340,6 +341,7 @@ class Brick extends PassiveActor {
 			if(control.worldActive[this.x][this.y].good){
 				location.reload();	
 			}else{
+				
 				let xx = rand(WORLD_WIDTH);
 				let yy = rand(WORLD_HEIGHT);
 				let oldA = control.worldActive[this.x][this.y];
@@ -352,6 +354,7 @@ class Brick extends PassiveActor {
 					if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty){
 						co = false;
 					}
+					console.log("Still looking for a place to drop him");
 				}
 				newA.x = xx;
 				newA.y = yy;
@@ -449,6 +452,7 @@ class Ladder extends PassiveActor {
 		super.moveOnY=true;
 		this.hide();
 		this.visible = false;
+		this.allowMoveInside = true;
 	}
 
 	holdsAShot() {
@@ -472,6 +476,7 @@ class Ladder extends PassiveActor {
 class Rope extends PassiveActor {
 	constructor(x, y) { super(x, y, "rope"); 
 	super.moveOnUnder=true;
+	this.allowMoveInside = true;
 	}
 }
 
@@ -564,13 +569,13 @@ class Hero extends ActiveActor {
 		if(currentBlock != empty)
 			return;
 		// Se o bloco atras do heroi nao for vazio nao pode disparar
-		else if(BlockBehindHero.hardObject())
+		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
 			return;
 		// Se o chao atras nao aguenta com o recuo do heroi
 		else if(!GroundBehindHero.holdsAShot())
 			return;
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
-		else if(BlockFrontHero.hardObject())
+		else if(BlockFrontHero.holdsAShot() && !BlockFrontHero.passthrough)
 			return;
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
 		else if(!BlockToShoot.destroyable)
@@ -627,8 +632,17 @@ class Robot extends ActiveActor {
 	dropFood(yy){
 		let ob22 = control.world[this.x][yy];
 				if(ob22==empty){
-					control.world[this.x][yy]=this.tempFood;
-					this.tempFood.x = this.x;
+					if(this.y===yy){
+						this.tempFood.x = this.x-this.direction[0];
+					}else{
+						this.tempFood.x = this.x;						
+					}
+					if(control.world[this.tempFood.x][yy]===empty){
+						control.world[this.tempFood.x][yy]=this.tempFood;
+					}else{
+						console.log("Nao pode deixar");
+						return;
+					}
 					this.tempFood.y = yy;
 					this.tempFood.show();
 					this.tempFood = null;
@@ -654,11 +668,13 @@ class Robot extends ActiveActor {
 				if(!this.notTrapped){
 					if(control.world[this.x][this.y]==empty){
 						let [dx, dy] = this.getHeroDir();
-						super.move(0,-1);
+						if(control.world[this.x][this.y-1]==empty){
+							super.move(0,-1);
+						}
 						super.move(dx,0);
 					}
 					this.notTrapped=true;
-				}
+				} 
 			},3000);
 		}
 		//console.log(this.x+ ' '+this.y + 'robot pos');
@@ -726,6 +742,12 @@ class Robot extends ActiveActor {
 			//GUARDA A COMIDA
 			this.tempFood = control.world[this.x][this.y];
 			this.tempFood.hide();
+			setTimeout(()=>{
+				if(this.tempFood!=null){
+					console.log("Deixa o gold please!!");
+					this.dropFood(this.y);
+				}
+			},3000);
 			/*
 			//TESTA SE NAO FOR COMIVEL
 			if(!this.tempFood.eatable)
@@ -738,25 +760,6 @@ class Robot extends ActiveActor {
 			// SE CHEGOU AQUI E PORQUE PODE SER COMIDA
 			// ENTAO O OURO VAI LHE SER DITO QUE FOI COMIDO
 			//this.tempFood.eaten(); whyyy ?
-		} else
-		{
-			/*
-			// PERGUNTA AO OURO GUARDADO SE O JA PODE LIBERTAR
-			if(!this.tempFood.CanIDropU())
-				return;
-			else
-			{
-				// LIBERTA O OURO
-				this.tempFood.drop(this.x,this.y);
-				this.tempFood = null;
-			}*/
-
-			setTimeout(()=>{
-				if(this.tempFood!=null){
-					console.log("Deixa o gold please!!");
-					//this.dropFood(this.y);
-				}
-			},3000);
 		}
 	}
 
