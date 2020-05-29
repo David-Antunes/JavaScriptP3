@@ -369,6 +369,7 @@ class Brick extends PassiveActor {
 				control.worldActive[this.x][this.y] = empty;
 				newA.show();
 				newA.reborn();
+				this.passthrough = false;
 			}
 		}
 
@@ -573,22 +574,26 @@ class Hero extends ActiveActor {
 		let BlockBehindHero = control.getObject(this.x - this.direction[0], this.y);
 		let GroundBehindHero = control.getObject(this.x - this.direction[0], this.y + 1);
 		let currentBlock = control.world[this.x][this.y];
-
 		// Se o heroi nao esta numa posicao vazia nao pode disparar
-		if(currentBlock != empty)
-			return;
+		if(!currentBlock.passthrough){
+		console.log("aqui1");
+			return;}
 		// Se o bloco atras do heroi nao for vazio nao pode disparar
-		else if(BlockBehindHero.hardObject())
-			return;
+		else if(!BlockBehindHero.passthrough){
+			console.log("aqui2");
+			return; }
 		// Se o chao atras nao aguenta com o recuo do heroi
-		else if(!GroundBehindHero.holdsAShot())
-			return;
+		else if(!GroundBehindHero.holdsAShot()){
+			console.log("aqui3");
+			return; }
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
-		else if(BlockFrontHero.hardObject())
-			return;
+		else if(!BlockFrontHero.passthrough){
+			console.log("aqui4");
+			return; }
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
-		else if(!BlockToShoot.destroyable)
-			return;
+		else if(!BlockToShoot.destroyable){
+			console.log("aqui5");
+			return; }
 		else
 		{
 			if(super.left())
