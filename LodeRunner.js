@@ -46,6 +46,9 @@ class Actor {
 		this.y += dy;
 		this.show();
 	}
+	holdsAShot() {
+		return false;
+	}
 }
 
 class PassiveActor extends Actor {
@@ -185,6 +188,15 @@ class ActiveActor extends Actor {
 								this.imageName = name + '_runs_right';	
 
 						break;
+
+						case "brick":
+
+							if(this.left()) 
+								this.imageName = name + '_runs_left';
+							else
+								this.imageName = name + '_runs_right';	
+
+						break;
 					}
 					this.show();
 	}
@@ -220,7 +232,7 @@ class ActiveActor extends Actor {
 			if(!control.world[this.x][this.y].moveOnY){
 				return;
 			}
-			if(control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder){
+			if((control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder) && !control.world[this.x][this.y].destroyed){
 				this.move(dx,dy);
 				return;
 			}
@@ -312,6 +324,7 @@ class Brick extends PassiveActor {
 		super.moveOnX=true;
 		this.destroyable =true;
 		this.timer = 0;
+
 	}
 
 	holdsAShot() {
@@ -331,6 +344,8 @@ class Brick extends PassiveActor {
 		this.show();
 		this.destroyed = true;
 		this.passthrough = true;
+		super.moveOnY = true;
+		super.moveOnX = false;
 
 		setTimeout(()=>{
 		this.show();
@@ -362,6 +377,8 @@ class Brick extends PassiveActor {
 		control.worldActive[this.x][this.y]=empty
 		this.imageName = "brick";
 		this.passthrough = false;
+		this.moveOnY = false;
+		this.moveOnX = true;
 		this.show();
 	
 	}, 20000);
@@ -699,7 +716,7 @@ class Robot extends ActiveActor {
 				this.move(0,-1);
 				this.notTrapped = false;
 				this.alt = true;
-				this.sec = 3;
+				this.sec = 0;
 			}
 			else
 				this.sec = 5;
@@ -811,7 +828,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=3;
+		this.level=2;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
