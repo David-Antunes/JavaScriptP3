@@ -245,7 +245,7 @@ class ActiveActor extends Actor {
 			let actorInNextStep = control.world[xx][yy];
 			let nextActiveActor = control.worldActive[xx][yy];
 			
-			if(nextActiveActor!==empty && nextActiveActor.good!==this.good){
+			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
 				alert('END OF THE GAME!');
 			//	location.reload();
 			}
@@ -520,8 +520,6 @@ class Hero extends ActiveActor {
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
 			control.loadLevel(control.level);
-			//console.log(control.level);
-			//control.loadLevel(control.level);
 		}
 		//console.log(this.x+ ' '+this.y + 'hero pos');
 		//console.log(control.world[this.x][this.y]);
@@ -645,14 +643,8 @@ class Robot extends ActiveActor {
 			xPos = this.x;						
 		} */
 		let ob22 = control.world[this.x][yy];
-				if(ob22==empty){					
-					//so deixa o ouro em lugares vazios
-					if(control.world[this.x][yy]===empty){
-						control.world[this.x][yy]=this.tempFood;
-					}else{
-						console.log("Nao pode deixar");
-						return;
-					}
+				if(ob22==empty){
+					control.world[this.x][yy]= this.tempFood;
 					this.tempFood.x = this.x;
 					this.tempFood.y = yy;
 					this.tempFood.show();
@@ -693,10 +685,13 @@ class Robot extends ActiveActor {
 
 	trapped()
 	{
+		//SE Nao ESTIVER TRAPPED
 		if(!(control.world[this.x][this.y].destroyed))
 			return false;
+		//SE ESTA TRAPPED FICA TRAPPED
 		else if(this.sec < 10)
 		{
+			// SE TIVER COMIDA DEITA FORA
 			if(this.tempFood != null)
 			this.dropFood(this.y - 1);
 
@@ -705,6 +700,7 @@ class Robot extends ActiveActor {
 		}
 		else
 		{
+			// 
 			this.sec = 0;
 			if(control.worldActive[this.x][this.y - 1] == empty)
 			{
@@ -743,19 +739,20 @@ class Robot extends ActiveActor {
 	animation()
 	{
 		
-		if(control.world[this.x][this.y].eatable){//pensar se este if esta bem aqui
-			this.collectFood();
-		}
-
 		if(control.world[this.x][this.y].destroyed) {
 			if(this.trapped())
-				return;
-		}
-		if(this.notTrapped && this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		}
 		if(this.sec<3){ //os guardas apenas movem se de 15 em 15 ciclos
 			this.sec++;
+			return;
+		}
+		this.sec = 0;
+		if(control.world[this.x][this.y].eatable){//pensar se este if esta bem aqui
+			this.collectFood();
+		}
+		if(this.notTrapped && this.actorFall(control.world[this.x][this.y+1])){
+			return;
 		}
 		else{
 			let [dx, dy] = this.getHeroDir();
@@ -784,17 +781,9 @@ class Robot extends ActiveActor {
 		if(this.tempFood==null){
 			//GUARDA A COMIDA
 			this.tempFood = control.world[this.x][this.y];
-			this.tempFood.hide();
+			this.tempFood.eaten();
 			this.show();
 			this.resetTimeTodropGold();
-			/*
-			setTimeout(()=>{
-				if(this.tempFood!=null){
-					console.log("Deixa o gold please!!");
-					this.dropFood(this.y);
-				}
-			},3000);
-			*/
 		} 
 	}
 
@@ -830,7 +819,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=2;
+		this.level=3;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -841,9 +830,9 @@ class GameControl {
 	}
 	static ObjectInCanvas(x,y)
 	{
-		if(x <= 0 || x >= WORLD_WIDTH)
+		if(x < 0 || x >= WORLD_WIDTH)
 			return false;
-		if(y <= 0 || y >= WORLD_HEIGHT)
+		if(y < 0 || y >= WORLD_HEIGHT)
 			return false;
 		
 		return true;
