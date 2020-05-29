@@ -109,14 +109,19 @@ class ActiveActor extends Actor {
 	showAnimation()
 	{
 		let curBlock = control.world[this.x][this.y];
-		let groundBlock = control.world[this.x][this.y + 1];
-		//se abaixo estiver um ator passivo, entao sai logo
-		if(control.worldActive[this.x][this.y+1]!=empty){
-			return;
-		}
-		if(!GameControl.ObjectInCanvas(this.x,this.y+1)){
-			return;
-		}
+		let groundBlock = null;
+
+		if(this.y+1<WORLD_HEIGHT){
+			//se abaixo estiver um ator passivo, entao sai logo
+			if(control.worldActive[this.x][this.y+1]!=empty){
+				return;
+			}
+			groundBlock = control.world[this.x][this.y + 1];
+		}else{
+			console.log(curBlock.name);
+			console.log(groundBlock);
+		}		
+
 		let name = this.name;
 		switch(curBlock.name)
 					{
@@ -136,8 +141,10 @@ class ActiveActor extends Actor {
 							
 						break;
 						case "empty":
-							if(curBlock == empty && groundBlock != empty && !groundBlock.passthrough)
+							if(groundBlock==null || (groundBlock!= empty  && !groundBlock.passthrough))
 							{
+								console.log(groundBlock);
+								console.log(groundBlock + this.direction[0] + " direction ");
 								if(this.direction[0] == -1 || this.direction[0] == 0) 
 								this.imageName = name + '_runs_left';
 								else
@@ -220,21 +227,6 @@ class ActiveActor extends Actor {
 			return;
 		}
 
-		/* debbuger
-		if(control.food==90 && (this.good)){
-			console.log(this.x + " pos "+this.y);
-			console.log("Aqui porra");
-			control.food=0;
-			console.log(downObject==null || (currentWorldObject.passthrough&&downObject.passthrough));
-		}
-		*/
-		/*
-		//se estiver no ar, nao pode mudar de direcao
-		if(downObject==null || (currentWorldObject.passthrough&&downObject.passthrough)){
-			return;
-		}
-		*/
-
 		//actor wants to fall
 		if(currentWorldObject.moveOnUnder &&dy===1&&downObject.passthrough){
 			this.move(0,1);
@@ -247,9 +239,9 @@ class ActiveActor extends Actor {
 			
 			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
 				alert('END OF THE GAME!');
-			//	location.reload();
+				location.reload();
 			}
-			if (actorInNextStep.passthrough && !actorInNextStep.destroyed){
+			if (actorInNextStep.passthrough /* && !actorInNextStep.destroyed */){
 				if(dy==0){
 					this.move(dx,dy);
 				}else if(currentWorldObject.moveOnY){
@@ -526,18 +518,18 @@ class Hero extends ActiveActor {
 	}
 	animation() {
 		
-		
 		if(control.world[this.x][this.y].eatable){
 			this.collectFood();
 		}
-		
+		if(this.y+1>=WORLD_HEIGHT){
+			control.food =90;
+		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		} else
 		{
 			
 			let k = control.getKey();
-			
 			if( k == ' ' ) { this.shoot(); this.show(); return; }
 			if(k == null)
 				return;
@@ -738,7 +730,7 @@ class Robot extends ActiveActor {
 	
 	animation()
 	{
-		
+		return;
 		if(control.world[this.x][this.y].destroyed) {
 			if(this.trapped())
 			return;
@@ -857,13 +849,17 @@ class GameControl {
 
 	cleanMatrixes()
 	{
-		for(let x=0 ; x < WORLD_WIDTH ; x++)
+		for(let x=0 ; x < WORLD_WIDTH ; x++){
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
 				this.world[x][y].hide();
 				this.worldActive[x][y].hide();
 			}
 			this.world = this.createMatrix();
 			this.worldActive = this.createMatrix();
+		}
+		while(control.invisibleChairs.pop()!=null){
+		}
+		console.log("pop is done!!");
 	}
 	loadLevel(level) {
 		this.cleanMatrixes();
