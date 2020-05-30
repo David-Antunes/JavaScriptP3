@@ -32,8 +32,9 @@ class Actor {
 		this.y = y;
 		this.imageName = imageName;
 		this.show();
-		this.name = ""; //nome do actor, importante para a animação
+		this.name = "";
 		this.visible=true;
+		this.eatable = false;
 	}
 	draw(x, y) {
 		control.ctx.drawImage(GameImages[this.imageName],
@@ -45,21 +46,27 @@ class Actor {
 		this.y += dy;
 		this.show();
 	}
-
+	holdsAShot() {
+		return false;
+	}
 }
 
 class PassiveActor extends Actor {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
-		this.moveOnX= false;
-		this.moveOnY=false;
-		this.moveOnUnder=false;
-		this.eatable = false;
-		this.passthrough = false;
-		this.destroyable = false;
+		this.moveOnX= false; //tells if the object serves as a horizontal path
+		this.moveOnY=false; //tell is the object serves as a vertical path
+		this.moveOnUnder=false; //tells if the active actor can move horizontally inside the object
+		this.eatable = false;//tells if this object can be eaten, if it can serve as gold
+		this.passthrough = false;// tells if this object can be passed through in any direction, example: chimey, destroied blocks,  food
+		this.destroyable = false; //tell is the object can be destroied in the game
+		
+		//tells if the active actor can stretch upwards to reach this object, 
+		//example: active actors can reach ropes when they are 1 key distance above them,
 		this.reachableFromSth = false;
 		this.name =imageName;
 		this.destroyed = false;
+		this.winObject = false;
 	}
 
 	holdsAShot() {
@@ -81,10 +88,6 @@ class PassiveActor extends Actor {
 
 	animation(){
 
-	}
-	//se ator passivo esta em cima de um ator passive que o permita disparar
-	standingSolidGround() {
-		return false;
 	}
 }
 
@@ -190,66 +193,56 @@ class ActiveActor extends Actor {
 		if(downActiveActor!=empty){
 			res=false;
 		}
-		else if(control.world[this.x][this.y].passthrough || (control.world[this.x][this.y].passthrough)){
+		else if(control.world[this.x][this.y].passthrough){
 			if(downObject !=null && (downObject.passthrough || downObject.moveOnUnder)){
 				this.move(0,1);
 				res = true;
-				//console.log(downActiveActor!=empty+ " "+!downActiveActor.good+" e good "+downActiveActor.good);
 			}
 		}
 		return res;
 	}
 	animation(dx,dy){
 		
-		let downObject = control.world[this.x][this.y+1];
-		let currentWorldObject = control.world[this.x][this.y];
-		
 		let xx = this.x+dx;
 		let yy = this.y+dy;
-
-		//se nao estiver num objeto que permite andar na vertical
-		if(dy===-1){
-
-			if(!control.world[this.x][this.y].moveOnY){
-				return;
-			}
-			//control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder) && !control.world[this.x][this.y].destroyed
-			if((control.world[this.x][this.y+dy].reachableFromSth) && !control.world[this.x][this.y].destroyed){
+		let next = control.getPassiveObject(xx,yy);
+		let nextActiveActor = control.worldActive[xx][yy];
+		let currentWorldObject = control.world[this.x][this.y];
+		if(currentWorldObject.eatable){
+			this.collectFood();
+		}
+		if(next==control.boundary){
+			return;
+		}
+		//if the actor is on a vertical object and decides to move up, it only happes if the up
+		//object can be penetrated
+		if(dy===-1&&currentWorldObject[this.x][this.y].moveOnY){
+			if(control.world[this.x][this.y+dy].passthrough){
 				this.move(dx,dy);
-				return;
 			}
 			return;
 		}
 
-		//actor wants to fall
-		if(currentWorldObject.moveOnUnder &&dy===1&&downObject.passthrough){
-			this.move(0,1);
+			
+		//finish the game when two active enimies active actors meet
+		if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
+			control.gameLost();
 			return;
+		}
+
+		if (next.passthrough){
+			if(dy==0){
+				this.move(dx,dy);
+			}else if(currentWorldObject.moveOnY){
+				this.move(dx,dy);
+			}
+		}
+		else if(next.moveOnY){
+			this.move(dx,dy);
+		}else if(next.moveOnUnder){
+			this.move(dx,dy);
 		}
 		
-		if(GameControl.ObjectInCanvas(xx,yy)){
-			let actorInNextStep = control.world[xx][yy];
-			let nextActiveActor = control.worldActive[xx][yy];
-			
-			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
-				control.gameStop();
-				return;
-			}
-			if (actorInNextStep.passthrough /* && !actorInNextStep.destroyed */){
-				if(dy==0){
-					this.move(dx,dy);
-				}else if(currentWorldObject.moveOnY){
-					this.move(dx,dy);
-				}
-			}
-			else if(actorInNextStep.moveOnY){
-				this.move(dx,dy);
-			}else if(actorInNextStep.moveOnUnder){
-				this.move(dx,dy);
-			}
-		}else{
-			return;
-		}
 	}
 	
 	left()
@@ -423,6 +416,7 @@ class Ladder extends PassiveActor {
 		this.reachableFromSth = true;
 		this.hide();
 		this.visible = false;
+		this.winObject = true;
 	}
 
 	holdsAShot() {
@@ -480,23 +474,9 @@ class Hero extends ActiveActor {
 	move(dx,dy){
 		super.move(dx,dy);
 		super.showAnimation();
-		if(this.y===0&&control.food===0){
-			hero.hide();
-			alert('GAME OVER, YOU A WINNER');
-			control.level++;
-			control.cleanMatrixes();
-			control.createWorlds();
-			control.gold += this.gold;
-			control.loadLevel(control.level);
-		}
-		//console.log(this.x+ ' '+this.y + 'hero pos');
-		//console.log(control.world[this.x][this.y]);
 	}
 	animation() {
 		
-		if(control.world[this.x][this.y].eatable){
-			this.collectFood();
-		}
 		if(this.y+1>=WORLD_HEIGHT){
 			control.food =90;
 		}
@@ -540,20 +520,16 @@ class Hero extends ActiveActor {
 		let BlockFrontHero = control.getObject(this.x + this.direction[0], this.y);
 		let BlockBehindHero = control.getObject(this.x - this.direction[0], this.y);
 		let GroundBehindHero = control.getObject(this.x - this.direction[0], this.y + 1);
-		let currentBlock = control.world[this.x][this.y];
 
 
 		// Se o chao atras nao aguenta com o recuo do heroi
 		if(!GroundBehindHero.holdsAShot() && !BlockBehindHero.hardObject()){
-			console.log("aqui3");
 			return; }
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
 		else if(BlockFrontHero.hardObject()){
-			console.log("aqui4");
 			return; }
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
 		else if(!BlockToShoot.destroyable){
-			console.log("aqui5");
 			return; }
 		else
 		{
@@ -586,14 +562,8 @@ class Hero extends ActiveActor {
 			this.gold++;
 			control.world[this.x][this.y].hide();
 			this.show();
+			control.checkGoldCollected();
 		}
-			if(control.food===0){
-				let size = control.invisibleChairs.length;
-				let arr = control.invisibleChairs;
-				for (let index = 0; index < size; index++) {
-					arr[index].makeVisible();
-				}
-			}
 	}
 }
 
@@ -607,11 +577,12 @@ class Robot extends ActiveActor {
 		this.sec = 0;
 		this.alt=false;
 		this.direction[1,0];
+		this.eatable = false;
 		this.notTrapped = true;
 		this.timeToDropFood = 0;
 	}
 	
-	dropFood()
+	dropFood(yy)
 	{
 		let nextX = this.x;
 		let nextY = this.y;
@@ -622,85 +593,69 @@ class Robot extends ActiveActor {
 			control.world[this.x][yy]= this.tempFood;
 			this.tempFood.x = this.x;
 			this.tempFood.y = yy;
-			this.tempFood.show();
-			this.tempFood = null;
-			this.timeToDropFood = 0;
 		}
 		else
 		{
-			let leftBlock = control.world[this.x - 1][yy];
-			let RightBlock = control.world[this.x + 1][yy];
+			let AboveLeftBlock = control.world[this.x - 1][yy];
+			let AboveRightBlock = control.world[this.x + 1][yy];
+			let leftBlock = control.world[this.x - 1][this.y];
+			let rightBlock = control.world[this.x + 1][this.y];
 			let canMove = false;
-			if(leftBlock == empty)
+
+			if(AboveLeftBlock == empty && leftBlock.hardObject())
 			{
 				this.tempFood.x = this.x - 1;
 				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;
+
 				canMove = true;
 			}
-			if(RightBlock == empty)
+			if(AboveRightBlock == empty && rightBlock.hardObject())
 			{
 				this.tempFood.x = this.x + 1;
 				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;	
+
 				canMove = true;	
 			}
 			if(!canMove)
 			{
 				let co = true;
-				let xx;
-				let yy;
+				let newX;
+				let newY;
 				while(co)
 				{
 					xx = rand(WORLD_WIDTH);
 					yy = rand(WORLD_HEIGHT);
-					if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty && control.world[xx][yy + 1].hardObject())
-					{
+					if(control.world[newX][newY]==empty && control.world[newX][newY + 1].hardObject())
 						co = false;
-					}
 				}
-				this.tempFood.x = xx;
-				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;	
+				this.tempFood.x = newX;
+				this.tempFood.y = newY;
 			}			
 		}
-			control.world[this.x][yy]= this.tempFood;
-			this.tempFood.x = this.x;
-			this.tempFood.y = yy;
-			this.tempFood.show();
-			this.tempFood = null;
-			this.timeToDropFood = 0;
+		this.tempFood.show();
+		this.tempFood = null;
+		this.timeToDropFood = 0;
 	}
 
 	move(dx,dy){
 		let robotAhead = control.worldActive[this.x+dx][this.y+dy];
 		//se o robot a frente nao e o heroi, entao avanca
-		if(robotAhead==empty || robotAhead.good){ 
+		if(robotAhead==empty || robotAhead.good)
+		{ 
 			
-			if(this.timeToDropFood>0){
+			if(this.timeToDropFood>0)
 				this.timeToDropFood--;
-			}else if(this.tempFood!=null) {
-				if(control.world[this.x][this.y]==empty&&control.world[this.x][this.y+1]!=empty){
-					this.tempFood.x = this.x;
-					this.tempFood.y = this.y;
-					this.tempFood.show();
-					this.tempFood = null;
-					this.timeToDropFood = 0;
-				}else{
-					this.timeToDropFood++;
-				}
-			}
+			else if(this.tempFood!=null)
+				dropFood(this.y);
+			else
+				this.timeToDropFood++;
+				
 			super.move(dx,dy);
 			super.showAnimation();
-		}else{
+
+		}else
 			return;
-		}
+		
 
 		
 	}
@@ -772,9 +727,7 @@ class Robot extends ActiveActor {
 			return;
 		}
 		this.sec = 0;
-		if(control.world[this.x][this.y].eatable){//pensar se este if esta bem aqui
-			this.collectFood();
-		}
+		
 		if(this.notTrapped && this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		}
@@ -835,7 +788,7 @@ class Robot extends ActiveActor {
 
 
 // GAME CONTROL
-class WorldBorder extends Stone {
+class Boundary extends Stone {
 	constructor()
 	{
 		super(-1,-1, "empty");
@@ -863,8 +816,10 @@ class GameControl {
 		this.level=2;
 		this.gold = 0;
 		this.paused = false;
+		this.restarted = false;
+		this.lost = false;
 		this.invisibleChairs = [];
-
+		this.boundary = new Boundary();
 		this.gameTick = null;
 
 		this.ctx = document.getElementById("canvas1").getContext("2d");
@@ -889,7 +844,7 @@ class GameControl {
 	getObject(x,y)
 	{
 		if(!GameControl.ObjectInCanvas(x,y))
-			return new WorldBorder();
+			return this.boundary;
 		else
 			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
 	}
@@ -897,7 +852,7 @@ class GameControl {
 	getActiveObject(x,y)
 	{
 		if(!GameControl.ObjectInCanvas(x,y))
-			return new WorldBorder();
+			return this.boundary;
 		else
 			return control.worldActive[x][y];
 	}
@@ -905,7 +860,7 @@ class GameControl {
 	getPassiveObject(x,y)
 	{
 		if(!GameControl.ObjectInCanvas(x,y))
-			return new WorldBorder();
+			return this.boundary;
 		else
 			return control.world[x][y];
 	}
@@ -991,19 +946,58 @@ class GameControl {
 
 	gameOver()
 	{
-		control.stop = true;
+		control.stop = false;
 		hero.hearts--;
 		control.food = 0;
 		if(hero.hearts <0)
 		{
 			alert("GAME OVER");
-			control.level = 1;
-			this.loadLevel(control.level);
-			control.gold = 0;
-		} else
+			location.reload();
+		}
+
+		checkGoldCollected()
 		{
+			if(control.food==0){
+				let size = control.invisibleChairs.length;
+				let arr = control.invisibleChairs;
+				for (let index = 0; index < size; index++) {
+					arr[index].makeVisible();
+				}
+			}
+		}
+
+		levelWon()
+		{
+			this.gold += hero.gold;
+			hero.hide();
+			control.cleanMatrixes();
+			control.createWorlds();
+			control.level++;
+			if(control.level>MAPS.length)
+			{
+				alert("Game Won!");
+				location.reload();
+				control.stop = true;
+				control.paused = true;
+			}
 			this.loadLevel(control.level);
 		}
+
+		checkWinCondition()
+		{
+			if(hero.y == 0 && this.getPassiveObject(hero.x,hero.y).winObject && control.food == 0)
+			{
+				levelWon();
+				return true;
+			}
+			return false;
+		}
+	}
+
+	gameLost()
+	{
+		control.lost = true;
+		control.stop = true;
 	}
 
 
@@ -1021,6 +1015,16 @@ class GameControl {
 					a.animation();
 				}
 			}
+
+			control.checkGoldCollected();
+
+			if(control.checkWinCondition())
+			{
+				control.levelWon();
+			}
+
+			if(control.lost)
+			control.gameOver();
 		}
 
 		if(control.stop)
@@ -1047,6 +1051,7 @@ function b1()
 	mesg("Level Restarted!"); 
 	control.cleanMatrixes();
 	control.createWorlds();
+
 	control.loadLevel(control.level);
 }
 function b2() {

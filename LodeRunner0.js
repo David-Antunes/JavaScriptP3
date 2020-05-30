@@ -81,6 +81,18 @@ class GameImages {
 		GameImages.loadOne("stone");
 	}
 }
+/*
+this.moveOnX= false; //tells if the object serves as a horizontal path
+		this.moveOnY=false; //tell is the object serves as a vertical path
+		this.moveOnUnder=false; //tells if the active actor can move horizontally inside the object
+		this.eatable = false;//tells if this object can be eaten, if it can serve as gold
+		this.passthrough = false;// tells if this object can be passed through in any direction, example: chimey, destroied blocks,  food
+		this.destroyable = false; //tell is the object can be destroied in the game
+		
+		//tells if the active actor can stretch upwards to reach this object, 
+		//example: active actors can reach ropes when they are 1 key distance above them,
+		this.reachableFromSth = false;
+		*/
 
 // GAME FACTORY
 
