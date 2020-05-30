@@ -81,21 +81,7 @@ class PassiveActor extends Actor {
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
-	canMoveOnX(){
-		return this.moveOnX;
-	}
-	canMoveOnY(){
-		return this,this.moveOnY;
-	}
-	canClimbXUnder(){
-		return this.moveOnUnder;
-	}
-	canEat(){
-		return this.eatable;
-	}
-	airAhead(){
-		return this.nothing;
-	}
+
 	animation(){
 
 	}
@@ -249,8 +235,8 @@ class ActiveActor extends Actor {
 			let nextActiveActor = control.worldActive[xx][yy];
 			
 			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
-				alert('END OF THE GAME!');
-				location.reload();
+				control.gameOver();
+				return;
 			}
 			if (actorInNextStep.passthrough /* && !actorInNextStep.destroyed */){
 				if(dy==0){
@@ -334,9 +320,9 @@ class Brick extends PassiveActor {
 	
 	hide() 
 	{
+		clearTimeout(this.regen);
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
-		clearTimeout(this.regen);
 	}
 
 	destroyBlock()
@@ -354,7 +340,7 @@ class Brick extends PassiveActor {
 		this.show();
 		if(control.worldActive[this.x][this.y]!=empty){
 			if(control.worldActive[this.x][this.y].good){
-				location.reload();	
+				gameOver();
 			}else{
 				let xx = rand(WORLD_WIDTH);
 				let yy = rand(WORLD_HEIGHT);
@@ -425,7 +411,7 @@ class Gold extends PassiveActor {
 	super.passthrough=true;
 	this.reachableFromSth = true;
 	this.timeToDrop = 0;
-
+	control.food++;
 	}
 
 	// SE ISTO E CHAMADO O OURO DESAPARECE E ENTRA EM CICLO
@@ -530,6 +516,7 @@ class Hero extends ActiveActor {
 		this.name = 'hero';
 		this.direction = [-1,0];
 		this.eatable = true;
+		this.gold = 0;
 	}
 
 	move(dx,dy){
@@ -541,6 +528,7 @@ class Hero extends ActiveActor {
 			control.level++;
 			control.cleanMatrixes();
 			control.createWorlds();
+			control.gold += this.gold;
 			control.loadLevel(control.level);
 		}
 		//console.log(this.x+ ' '+this.y + 'hero pos');
@@ -584,8 +572,6 @@ class Hero extends ActiveActor {
 	{
 		alert("U LOST >:(")
 	}
-
-	//DAVID
 
 	
 	shoot()
@@ -639,7 +625,7 @@ class Hero extends ActiveActor {
 	
 		if(control.world[this.x][this.y].eatable){
 			control.food--;
-			control.gold++;
+			this.gold++;
 			control.world[this.x][this.y].hide();
 			this.show();
 		}
@@ -670,14 +656,6 @@ class Robot extends ActiveActor {
 	
 	dropFood(yy)
 	{
-		/*
-		let xPos = 0;
-		//se nao estiver num buraco, deixa o ouro atras
-		if(this.y===yy){
-			xPos = this.x-this.direction[0];
-		}else{
-			xPos = this.x;						
-		} */
 		let ob22 = control.world[this.x][yy];
 
 		if(ob22==empty)
@@ -900,10 +878,13 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=7;
+		this.level=2;
 		this.gold = 0;
 		this.paused = false;
 		this.invisibleChairs = [];
+
+		this.gameTick = null;
+
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
 		this.world = this.createMatrix();
@@ -959,15 +940,13 @@ class GameControl {
 		this.worldActive = this.createMatrix();
 	}
 	loadLevel(level) {
+		this.cleanMatrixes();
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
 		for(let x=0 ; x < WORLD_WIDTH ; x++)
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
 				let actorK = GameFactory.actorFromCode(map[y][x], x, y);
-				if(map[y][x]=='o'){
-					this.food++;
-				}
 				if(!actorK.visible){
 					control.invisibleChairs.push(actorK);
 				}
@@ -1000,7 +979,7 @@ class GameControl {
 	}
 	printGold()
 	{
-		this.goldLabel.value = this.gold;
+		this.goldLabel.value = this.gold + hero.gold;
 		this.goldLeftLabel.value = this.food;
 	}
 
@@ -1012,22 +991,42 @@ class GameControl {
 			levelLeft.value = MAPS.length;
 	}
 
+	gameOver()
+	{
+		control.stop = true;
+		hero.hearts--;
+		control.food = 0;
+		if(hero.hearts <0)
+		{
+			alert("GAME OVER");
+			control.level = 1;
+			this.loadLevel(control.level);
+			control.gold = 0;
+		} else
+		{
+			this.loadLevel(control.level);
+		}
+	}
+
+
+
 	animationEvent() {
 		control.time++;
 		control.printGold();
 		if(!control.paused)
 		{
-			for(let x=0 ; x < WORLD_WIDTH ; x++)
-			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
+			for(let x=0 ; x < WORLD_WIDTH && !control.stop; x++)
+			for(let y=0 ; y < WORLD_HEIGHT && !control.stop; y++) {
 				let a = control.worldActive[x][y];
-				//let passive = control.world[x][y];
 				if( a.time < control.time ) {
 					a.time = control.time;
 					a.animation();
 				}
-				//passive.animation();
 			}
 		}
+
+		if(control.stop)
+			control.stop = false;
 	}
 	keyDownEvent(k) {
 		control.key = k.keyCode;
