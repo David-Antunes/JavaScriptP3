@@ -1008,6 +1008,8 @@ class GameControl {
 	{
 			let levelLabel = document.getElementById("levelLabel");
 			levelLabel.value = this.level;
+			let levelLeft = document.getElementById("levelLeft");
+			levelLeft.value = MAPS.length;
 	}
 
 	animationEvent() {
