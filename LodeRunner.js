@@ -100,16 +100,12 @@ class ActiveActor extends Actor {
 		let curBlock = control.world[this.x][this.y];
 		let groundBlock = null;
 
-		if(this.y+1<WORLD_HEIGHT){
 			//se abaixo estiver um ator passivo, entao sai logo
 			if(control.worldActive[this.x][this.y+1]!=empty){
 				return;
 			}
 			groundBlock = control.world[this.x][this.y + 1];
-		}else{
-			console.log(curBlock.name);
-			console.log(groundBlock);
-		}		
+
 
 		let name = this.name;
 		switch(curBlock.name)
@@ -235,7 +231,7 @@ class ActiveActor extends Actor {
 			let nextActiveActor = control.worldActive[xx][yy];
 			
 			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
-				control.gameOver();
+				control.gameStop();
 				return;
 			}
 			if (actorInNextStep.passthrough /* && !actorInNextStep.destroyed */){
@@ -289,19 +285,7 @@ class ActiveActor extends Actor {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
 	}
-	trappedInHole(){
-		let res=false;
-		let befX = this.x-1;
-		let afterX = this.x+1;
-		if(befX>0 && afterX<WORLD_WIDTH){
-			let ob1 = control.world[befX][this.y];
-			let ob2 = control.world[afterX][this.y];
-			if(ob1.moveOnX&&ob2.moveOnX&&control.world[this.x][this.y]==empty){
-				res = true;
-			}
-		}
-		return res;
-	}
+
 }
 
 class Brick extends PassiveActor {
@@ -338,45 +322,18 @@ class Brick extends PassiveActor {
 
 		this.regen = setTimeout(()=>{
 		this.show();
-		if(control.worldActive[this.x][this.y]!=empty){
-			if(control.worldActive[this.x][this.y].good){
-				gameOver();
+		let actor = control.getActiveObject(this.x,this.y);
+
+		if(actor!=empty){
+			if(actor.good){
+				gameStop();
 			}else{
-				let xx = rand(WORLD_WIDTH);
-				let yy = rand(WORLD_HEIGHT);
-				let oldA = control.worldActive[this.x][this.y];
-				let newA = oldA;
-				let co  = true;
-				//let oldP = control.worldActive[this.x][this.y];
-				while(co){
-					xx = rand(WORLD_WIDTH);
-					yy = rand(WORLD_HEIGHT);
-					if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty){
-						co = false;
-					}
-				}
-				newA.x = xx;
-				newA.y = yy;
-				control.worldActive[this.x][this.y] = empty;
-				newA.show();
-				newA.reborn();
-				this.passthrough = false;
-				this.hard = true;				
+				actor.unstuck();
 			}
-		}
-
-		if(control.world[this.x][this.y].destroyed)
-		{
-
-			control.worldActive[this.x][this.y]=empty;
-			this.destroyed = false;
-			this.imageName = "brick";
 			this.passthrough = false;
-			this.moveOnY = false;
-			this.moveOnX = true;
-			this.show();
+			this.hard = true;				
 		}
-	
+		
 	}, 20000);
 	
 	}
@@ -582,20 +539,16 @@ class Hero extends ActiveActor {
 		let BlockFrontHero = control.getObject(this.x + this.direction[0], this.y);
 		let BlockBehindHero = control.getObject(this.x - this.direction[0], this.y);
 		let GroundBehindHero = control.getObject(this.x - this.direction[0], this.y + 1);
-		let currentBlock = control.world[this.x][this.y];
 
 
 		// Se o chao atras nao aguenta com o recuo do heroi
 		if(!GroundBehindHero.holdsAShot() && !BlockBehindHero.hardObject()){
-			console.log("aqui3");
 			return; }
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
 		else if(BlockFrontHero.hardObject()){
-			console.log("aqui4");
 			return; }
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
 		else if(!BlockToShoot.destroyable){
-			console.log("aqui5");
 			return; }
 		else
 		{
@@ -656,86 +609,78 @@ class Robot extends ActiveActor {
 	
 	dropFood(yy)
 	{
-		let ob22 = control.world[this.x][yy];
-
-		if(ob22==empty)
+		let nextX = this.x;
+		let nextY = this.y;
+		let currentBlock = control.getPassiveObject(nextX,nextY);
+		
+		if(currentBlock==empty)
 		{
 			control.world[this.x][yy]= this.tempFood;
 			this.tempFood.x = this.x;
 			this.tempFood.y = yy;
-			this.tempFood.show();
-			this.tempFood = null;
-			this.timeToDropFood = 0;
 		}
 		else
 		{
-			let leftBlock = control.world[this.x - 1][yy];
-			let RightBlock = control.world[this.x + 1][yy];
+			let AboveLeftBlock = control.world[this.x - 1][yy];
+			let AboveRightBlock = control.world[this.x + 1][yy];
+			let leftBlock = control.world[this.x - 1][this.y];
+			let rightBlock = control.world[this.x + 1][this.y];
 			let canMove = false;
-			if(leftBlock == empty)
+
+			if(AboveLeftBlock == empty && leftBlock.hardObject())
 			{
 				this.tempFood.x = this.x - 1;
 				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;
+
 				canMove = true;
 			}
-			if(RightBlock == empty)
+			if(AboveRightBlock == empty && rightBlock.hardObject())
 			{
 				this.tempFood.x = this.x + 1;
 				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;	
+
 				canMove = true;	
 			}
 			if(!canMove)
 			{
 				let co = true;
-				let xx;
-				let yy;
+				let newX;
+				let newY;
 				while(co)
 				{
 					xx = rand(WORLD_WIDTH);
 					yy = rand(WORLD_HEIGHT);
-					if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty && control.world[xx][yy + 1].hardObject())
-					{
+					if(control.world[newX][newY]==empty && control.world[newX][newY + 1].hardObject())
 						co = false;
-					}
 				}
-				this.tempFood.x = xx;
-				this.tempFood.y = yy;
-				this.tempFood.show();
-				this.tempFood = null;
-				this.timeToDropFood = 0;	
+				this.tempFood.x = newX;
+				this.tempFood.y = newY;
 			}			
 		}
+		this.tempFood.show();
+		this.tempFood = null;
+		this.timeToDropFood = 0;
 	}
 
 	move(dx,dy){
 		let robotAhead = control.worldActive[this.x+dx][this.y+dy];
 		//se o robot a frente nao e o heroi, entao avanca
-		if(robotAhead==empty || robotAhead.good){ 
+		if(robotAhead==empty || robotAhead.good)
+		{ 
 			
-			if(this.timeToDropFood>0){
+			if(this.timeToDropFood>0)
 				this.timeToDropFood--;
-			}else if(this.tempFood!=null) {
-				if(control.world[this.x][this.y]==empty&&control.world[this.x][this.y+1]!=empty){
-					this.tempFood.x = this.x;
-					this.tempFood.y = this.y;
-					this.tempFood.show();
-					this.tempFood = null;
-					this.timeToDropFood = 0;
-				}else{
-					this.timeToDropFood++;
-				}
-			}
+			else if(this.tempFood!=null)
+				dropFood(this.y);
+			else
+				this.timeToDropFood++;
+				
 			super.move(dx,dy);
 			super.showAnimation();
-		}else{
+
+		}else
 			return;
-		}
+		
 
 		
 	}
@@ -753,7 +698,7 @@ class Robot extends ActiveActor {
 		{
 			// SE TIVER COMIDA DEITA FORA
 			if(this.tempFood != null)
-			this.dropFood(this.y - 1);
+				this.dropFood(this.y - 1);
 
 			this.sec++;
 			return true;
@@ -846,6 +791,23 @@ class Robot extends ActiveActor {
 		} 
 	}
 
+	unstuck()
+	{
+		this.hide();
+		let co  = true;
+		let newX;
+		let newY;
+		while(co){
+			newX = rand(WORLD_WIDTH);
+			newY = rand(WORLD_HEIGHT);
+			if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty){
+				co = false;
+			}
+		}
+		this.x = newX;
+		this.y = newY;
+	}
+
 	eaten() {}
 
 }
@@ -910,6 +872,22 @@ class GameControl {
 			return new WorldBorder();
 		else
 			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
+	}
+
+	getActiveObject(x,y)
+	{
+		if(!GameControl.ObjectInCanvas(x,y))
+			return new WorldBorder();
+		else
+			return control.worldActive[x][y];
+	}
+
+	getPassiveObject(x,y)
+	{
+		if(!GameControl.ObjectInCanvas(x,y))
+			return new WorldBorder();
+		else
+			return control.world[x][y];
 	}
 	createMatrix() { // stored by columns
 		let matrix = new Array(WORLD_WIDTH);
