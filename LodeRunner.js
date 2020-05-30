@@ -214,16 +214,16 @@ class ActiveActor extends Actor {
 		if(next==control.boundary){
 			return;
 		}
-		//if the actor is on a vertical object and decides to move up, it only happes if the up
-		//object can be penetrated
-		if(dy===-1&&currentWorldObject[this.x][this.y].moveOnY){
-			if(control.world[this.x][this.y+dy].passthrough){
+		//if the actor is on a vertical object and decides to move up, it only happens if the up
+		//object is a vertical path or can be penetrated
+		if(dy===-1&&currentWorldObject.moveOnY){
+			if(!currentWorldObject.destroyed && (currentWorldObject.moveOnY || next.passthrough||next.moveOnUnder)){
 				this.move(dx,dy);
 			}
 			return;
 		}
 
-			
+		
 		//finish the game when two active enimies active actors meet
 		if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
 			control.gameLost();
@@ -234,6 +234,9 @@ class ActiveActor extends Actor {
 			if(dy==0){
 				this.move(dx,dy);
 			}else if(currentWorldObject.moveOnY){
+				this.move(dx,dy);
+			}else if(dy==1){
+				//actor wants to fall
 				this.move(dx,dy);
 			}
 		}
@@ -315,22 +318,33 @@ class Brick extends PassiveActor {
 		super.moveOnX = false;
 
 		this.regen = setTimeout(()=>{
-		this.show();
-		let actor = control.getActiveObject(this.x,this.y);
-
-		if(actor!=empty){
-			if(actor.good){
-				control.gameLost();
-			}else{
-				actor.unstuck();
+			if(control.paused) {
+				this.regen = setTimeout(this.restoreBrick, 15000);
+			} else
+			{
+				this.restoreBrick();
 			}
-			this.passthrough = false;
-			this.hard = true;				
-		}
-		
-	}, 20000);
 	
+		
+		}, 20000);
 	}
+	
+	restoreBrick()
+	{
+		this.show();
+				let actor = control.getActiveObject(this.x,this.y);
+				
+				if(actor!=empty){
+					if(actor.good){
+						control.gameLost();
+					}else{
+						actor.unstuck();
+					}
+					this.passthrough = false;
+					this.hard = true;
+				}	
+	}
+
 
 		
 	hardObject()
@@ -477,9 +491,6 @@ class Hero extends ActiveActor {
 	}
 	animation() {
 		
-		if(this.y+1>=WORLD_HEIGHT){
-			control.food =90;
-		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		} else
@@ -548,10 +559,12 @@ class Hero extends ActiveActor {
 			if(!BlockBehindHero.hardObject())
 			{
 				super.move(-this.direction[0], 0);
+				this.collectFood();
 				// Colocar o sentido de novo
 				this.direction[0] = -this.direction[0];
 			}
 			BlockToShoot.destroyBlock();
+			
 		}
 	}
 
