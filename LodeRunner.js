@@ -323,6 +323,7 @@ class Brick extends PassiveActor {
 		super.moveOnX=true;
 		this.destroyable =true;
 		this.timer = 0;
+		this.regen = null;
 
 	}
 
@@ -334,6 +335,7 @@ class Brick extends PassiveActor {
 	{
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
+		clearTimeout(this.regen);
 	}
 
 	destroyBlock()
@@ -346,7 +348,7 @@ class Brick extends PassiveActor {
 		super.moveOnY = true;
 		super.moveOnX = false;
 
-		setTimeout(()=>{
+		this.regen = setTimeout(()=>{
 		this.show();
 		if(control.worldActive[this.x][this.y]!=empty){
 			if(control.worldActive[this.x][this.y].good){
@@ -373,13 +375,18 @@ class Brick extends PassiveActor {
 				this.passthrough = false;
 			}
 		}
+		let currentBlock =control.world[this.x][this.y];
+		if(control.world[this.x][this.y].destroyed)
+		{
 
-		control.worldActive[this.x][this.y]=empty
-		this.imageName = "brick";
-		this.passthrough = false;
-		this.moveOnY = false;
-		this.moveOnX = true;
-		this.show();
+			control.worldActive[this.x][this.y]=empty;
+			this.destroyed = false;
+			this.imageName = "brick";
+			this.passthrough = false;
+			this.moveOnY = false;
+			this.moveOnX = true;
+			this.show();
+		}
 	
 	}, 20000);
 	
@@ -530,7 +537,7 @@ class Hero extends ActiveActor {
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
 			control.cleanMatrixes();
-			control.createWorlds()
+			control.createWorlds();
 			control.loadLevel(control.level);
 		}
 		//console.log(this.x+ ' '+this.y + 'hero pos');
@@ -834,7 +841,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=1;
+		this.level=2;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
