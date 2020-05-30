@@ -63,6 +63,7 @@ class PassiveActor extends Actor {
 		this.reachableFromSth = false;
 		this.name =imageName;
 		this.destroyed = false;
+		this.winObject = false;
 	}
 
 	holdsAShot() {
@@ -189,11 +190,10 @@ class ActiveActor extends Actor {
 		if(downActiveActor!=empty){
 			res=false;
 		}
-		else if(control.world[this.x][this.y].passthrough || (control.world[this.x][this.y].passthrough)){
+		else if(control.world[this.x][this.y].passthrough){
 			if(downObject !=null && (downObject.passthrough || downObject.moveOnUnder)){
 				this.move(0,1);
 				res = true;
-				//console.log(downActiveActor!=empty+ " "+!downActiveActor.good+" e good "+downActiveActor.good);
 			}
 		}
 		return res;
@@ -212,10 +212,10 @@ class ActiveActor extends Actor {
 			if(!control.world[this.x][this.y].moveOnY){
 				return;
 			}
-			//control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder) && !control.world[this.x][this.y].destroyed
 			if((control.world[this.x][this.y+dy].reachableFromSth) && !control.world[this.x][this.y].destroyed){
 				this.move(dx,dy);
 				return;
+
 			}
 			return;
 		}
@@ -230,8 +230,8 @@ class ActiveActor extends Actor {
 			let actorInNextStep = control.world[xx][yy];
 			let nextActiveActor = control.worldActive[xx][yy];
 			
-			if(dy!==-1 && nextActiveActor!==empty && nextActiveActor.good!==this.good){
-				control.gameStop();
+			if(nextActiveActor!==empty && nextActiveActor.good!==this.good){
+				control.gameLost();
 				return;
 			}
 			if (actorInNextStep.passthrough /* && !actorInNextStep.destroyed */){
@@ -326,7 +326,7 @@ class Brick extends PassiveActor {
 
 		if(actor!=empty){
 			if(actor.good){
-				gameStop();
+				control.gameLost();
 			}else{
 				actor.unstuck();
 			}
@@ -422,6 +422,7 @@ class Ladder extends PassiveActor {
 		this.reachableFromSth = true;
 		this.hide();
 		this.visible = false;
+		this.winObject = true;
 	}
 
 	holdsAShot() {
@@ -479,25 +480,11 @@ class Hero extends ActiveActor {
 	move(dx,dy){
 		super.move(dx,dy);
 		super.showAnimation();
-		if(this.y===0&&control.food===0){
-			hero.hide();
-			alert('GAME OVER, YOU A WINNER');
-			control.level++;
-			control.cleanMatrixes();
-			control.createWorlds();
-			control.gold += this.gold;
-			control.loadLevel(control.level);
-		}
-		//console.log(this.x+ ' '+this.y + 'hero pos');
-		//console.log(control.world[this.x][this.y]);
 	}
 	animation() {
 		
 		if(control.world[this.x][this.y].eatable){
 			this.collectFood();
-		}
-		if(this.y+1>=WORLD_HEIGHT){
-			control.food =90;
 		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
@@ -535,10 +522,10 @@ class Hero extends ActiveActor {
 	{
 		// Busca o bloco do chao que esta na direcao do heroi
 
-		let BlockToShoot = control.getObject(this.x + this.direction[0], this.y + 1);
-		let BlockFrontHero = control.getObject(this.x + this.direction[0], this.y);
-		let BlockBehindHero = control.getObject(this.x - this.direction[0], this.y);
-		let GroundBehindHero = control.getObject(this.x - this.direction[0], this.y + 1);
+		let BlockToShoot = control.getPassiveObject(this.x + this.direction[0], this.y + 1);
+		let BlockFrontHero = control.getPassiveObject(this.x + this.direction[0], this.y);
+		let BlockBehindHero = control.getPassiveObject(this.x - this.direction[0], this.y);
+		let GroundBehindHero = control.getPassiveObject(this.x - this.direction[0], this.y + 1);
 
 
 		// Se o chao atras nao aguenta com o recuo do heroi
@@ -581,14 +568,8 @@ class Hero extends ActiveActor {
 			this.gold++;
 			control.world[this.x][this.y].hide();
 			this.show();
+			control.checkGoldCollected();
 		}
-			if(control.food===0){
-				let size = control.invisibleChairs.length;
-				let arr = control.invisibleChairs;
-				for (let index = 0; index < size; index++) {
-					arr[index].makeVisible();
-				}
-			}
 	}
 }
 
@@ -648,8 +629,8 @@ class Robot extends ActiveActor {
 				let newY;
 				while(co)
 				{
-					xx = rand(WORLD_WIDTH);
-					yy = rand(WORLD_HEIGHT);
+					newX = rand(WORLD_WIDTH);
+					newY = rand(WORLD_HEIGHT);
 					if(control.world[newX][newY]==empty && control.world[newX][newY + 1].hardObject())
 						co = false;
 				}
@@ -671,7 +652,7 @@ class Robot extends ActiveActor {
 			if(this.timeToDropFood>0)
 				this.timeToDropFood--;
 			else if(this.tempFood!=null)
-				dropFood(this.y);
+				this.dropFood(this.y);
 			else
 				this.timeToDropFood++;
 				
@@ -707,15 +688,21 @@ class Robot extends ActiveActor {
 		{
 			// 
 			this.sec = 0;
-			if(!control.worldActive[this.x][this.y - 1].hardObject())
+			if(control.worldActive[this.x][this.y - 1] == empty || control.worldActive[this.x][this.y - 1].good) 
 			{
-				this.move(0,-1);
-				this.notTrapped = false;
+				if(control.worldActive[this.x][this.y - 1].good)
+					control.gameLost();
+
+				super.move(0,-1);
+				this.notTrapped = false;	
 				this.alt = true;
 				this.sec = 0;
 			}
-			else
+			else{
 				this.sec = 5;
+				return true;
+			}
+
 		}
 		return false;
 	}
@@ -752,7 +739,7 @@ class Robot extends ActiveActor {
 			return;
 		}
 		this.sec = 0;
-		if(control.world[this.x][this.y].eatable){//pensar se este if esta bem aqui
+		if(control.world[this.x][this.y].eatable){
 			this.collectFood();
 		}
 		if(this.notTrapped && this.actorFall(control.world[this.x][this.y+1])){
@@ -800,7 +787,7 @@ class Robot extends ActiveActor {
 		while(co){
 			newX = rand(WORLD_WIDTH);
 			newY = rand(WORLD_HEIGHT);
-			if(control.worldActive[xx][yy]==empty&&control.world[xx][yy]==empty){
+			if(control.worldActive[newX][newY]==empty&&control.world[newX][newY]==empty){
 				co = false;
 			}
 		}
@@ -843,7 +830,11 @@ class GameControl {
 		this.level=2;
 		this.gold = 0;
 		this.paused = false;
+		this.restarted = false;
+		this.lost = false;
+		this.Won = false;
 		this.invisibleChairs = [];
+
 
 		this.gameTick = null;
 
@@ -971,19 +962,61 @@ class GameControl {
 
 	gameOver()
 	{
-		control.stop = true;
+		control.stop = false;
+		control.lost = false;
 		hero.hearts--;
 		control.food = 0;
 		if(hero.hearts <0)
 		{
 			alert("GAME OVER");
-			control.level = 1;
-			this.loadLevel(control.level);
-			control.gold = 0;
-		} else
+			location.reload();
+		}
+		this.loadLevel(control.level);
+	}
+
+		checkGoldCollected()
 		{
+			if(control.food==0 && !control.won){
+				let size = control.invisibleChairs.length;
+				let arr = control.invisibleChairs;
+				for (let index = 0; index < size; index++) {
+					arr[index].makeVisible();
+				}
+				control.won = true;
+			}
+		}
+
+		levelWon()
+		{
+			this.gold += hero.gold;
+			hero.hide();
+			control.cleanMatrixes();
+			control.createWorlds();
+			control.level++;
+			if(control.level>MAPS.length)
+			{
+				alert("Game Won!");
+				location.reload();
+				control.stop = true;
+				control.paused = true;
+			}
 			this.loadLevel(control.level);
 		}
+
+		checkWinCondition()
+		{
+			if(hero.y == 0 && this.getPassiveObject(hero.x,hero.y).winObject && control.food == 0)
+			{
+				this.levelWon();
+				return true;
+			}
+			return false;
+		}
+
+	gameLost()
+	{
+		control.lost = true;
+		control.stop = true;
 	}
 
 
@@ -1002,10 +1035,15 @@ class GameControl {
 				}
 			}
 		}
+		control.checkGoldCollected();
 
-		if(control.stop)
-			control.stop = false;
+		if(control.checkWinCondition())
+		{
+			control.levelWon();
+		} else if(control.lost)
+			control.gameOver();
 	}
+		
 	keyDownEvent(k) {
 		control.key = k.keyCode;
 	}
@@ -1027,6 +1065,7 @@ function b1()
 	mesg("Level Restarted!"); 
 	control.cleanMatrixes();
 	control.createWorlds();
+
 	control.loadLevel(control.level);
 }
 function b2() {
