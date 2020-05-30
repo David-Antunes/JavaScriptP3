@@ -60,7 +60,7 @@ class PassiveActor extends Actor {
 		this.eatable = false;
 		this.passthrough = false;
 		this.destroyable = false;
-		this.allowJumpUp = false;
+		this.reachableFromSth = false;
 		this.name =imageName;
 		this.destroyed = false;
 	}
@@ -230,7 +230,8 @@ class ActiveActor extends Actor {
 			if(!control.world[this.x][this.y].moveOnY){
 				return;
 			}
-			if((control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder) && !control.world[this.x][this.y].destroyed){
+			//control.world[this.x][this.y+dy]==empty||control.world[this.x][this.y+dy].moveOnY||control.world[this.x][this.y+dy].moveOnUnder) && !control.world[this.x][this.y].destroyed
+			if((control.world[this.x][this.y+dy].reachableFromSth) && !control.world[this.x][this.y].destroyed){
 				this.move(dx,dy);
 				return;
 			}
@@ -400,7 +401,8 @@ class Chimney extends PassiveActor {
 
 class Empty extends PassiveActor {
 	constructor() { super(-1, -1, "empty");
-	super.passthrough = true;	 
+	super.passthrough = true;	
+	super.reachableFromSth = true; 
 }
 	show() {}
 	hide() {}
@@ -411,6 +413,7 @@ class Gold extends PassiveActor {
 	super(x, y, "gold");
 	super.eatable=true;
 	super.passthrough=true;
+	this.reachableFromSth = true;
 	this.timeToDrop = 0;
 
 	}
@@ -463,6 +466,7 @@ class Ladder extends PassiveActor {
 	constructor(x, y) {
 		super(x, y, "ladder");
 		super.moveOnY=true;
+		this.reachableFromSth = true;
 		this.hide();
 		this.visible = false;
 	}
@@ -488,6 +492,7 @@ class Ladder extends PassiveActor {
 class Rope extends PassiveActor {
 	constructor(x, y) { super(x, y, "rope"); 
 	super.moveOnUnder=true;
+	this.reachableFromSth=true;
 	}
 }
 
@@ -514,21 +519,18 @@ class Hero extends ActiveActor {
 		this.good=true;
 		this.name = 'hero';
 		this.direction = [-1,0];
-		this.lastStrive = null;
 		this.eatable = true;
 	}
 
 	move(dx,dy){
 		super.move(dx,dy);
 		super.showAnimation();
-		if(this.lastStrive===null){
-
-		}else if(this.lastStrive==control.world[this.x][this.y]){
+		if(this.y===0&&control.food===0){
 			hero.hide();
 			alert('GAME OVER, YOU A WINNER');
 			control.level++;
 			control.cleanMatrixes();
-			control.createWordsMatrix();
+			control.createWorlds()
 			control.loadLevel(control.level);
 		}
 		//console.log(this.x+ ' '+this.y + 'hero pos');
@@ -539,7 +541,9 @@ class Hero extends ActiveActor {
 		if(control.world[this.x][this.y].eatable){
 			this.collectFood();
 		}
-		
+		if(this.y+1>=WORLD_HEIGHT){
+			control.food =90;
+		}
 		if(this.actorFall(control.world[this.x][this.y+1])){
 			return;
 		} else
@@ -614,6 +618,7 @@ class Hero extends ActiveActor {
 	}
 
 	collectFood(){
+	
 		if(control.world[this.x][this.y].eatable){
 			control.food--;
 			control.world[this.x][this.y].hide();
@@ -625,7 +630,6 @@ class Hero extends ActiveActor {
 				for (let index = 0; index < size; index++) {
 					arr[index].makeVisible();
 				}
-				this.lastStrive = arr[0];
 			}
 	}
 }
@@ -749,7 +753,7 @@ class Robot extends ActiveActor {
 	}
 	
 	animation()
-	{
+	{	
 		if(control.world[this.x][this.y].destroyed) {
 			if(this.trapped())
 			return;
@@ -830,7 +834,7 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=4;
+		this.level=9;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -874,19 +878,21 @@ class GameControl {
 				this.worldActive[x][y].hide();
 			}
 		}
+		while(this.invisibleChairs.length>0){
+			this.invisibleChairs.pop();
+		}
 	}
-	createWordsMatrix(){
+
+	createWorlds(){
 		this.world = this.createMatrix();
 		this.worldActive = this.createMatrix();
 	}
-	
 	loadLevel(level) {
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
 		for(let x=0 ; x < WORLD_WIDTH ; x++)
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
-					// x/y reversed because map stored by lines
 				let actorK = GameFactory.actorFromCode(map[y][x], x, y);
 				if(map[y][x]=='o'){
 					this.food++;
