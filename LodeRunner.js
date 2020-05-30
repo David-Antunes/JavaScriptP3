@@ -324,6 +324,7 @@ class Brick extends PassiveActor {
 		this.destroyable =true;
 		this.timer = 0;
 		this.regen = null;
+		this.hard = true;
 
 	}
 
@@ -341,6 +342,7 @@ class Brick extends PassiveActor {
 	destroyBlock()
 	{
 		//Mete o bloco invisivel
+		this.hard = false;
 		this.imageName = "empty";
 		this.show();
 		this.destroyed = true;
@@ -373,9 +375,10 @@ class Brick extends PassiveActor {
 				newA.show();
 				newA.reborn();
 				this.passthrough = false;
+				this.hard = true;				
 			}
 		}
-		let currentBlock =control.world[this.x][this.y];
+
 		if(control.world[this.x][this.y].destroyed)
 		{
 
@@ -395,7 +398,7 @@ class Brick extends PassiveActor {
 		
 	hardObject()
 	{
-		return true;
+		return this.hard;
 	}
 }
 
@@ -563,6 +566,15 @@ class Hero extends ActiveActor {
 			else
 			{			
 				let [dx, dy] = k;
+
+
+				// ISTO E PARA O HEROI TROCAR DE POSICAO NO MESMO BLOCO
+				if(dx != this.direction[0] && dx != 0)
+				{
+					this.direction[0] = dx;
+					this.showAnimation();
+					return;	
+				}
 				super.animation(dx,dy);
 			}
 		}
@@ -588,7 +600,7 @@ class Hero extends ActiveActor {
 
 
 		// Se o chao atras nao aguenta com o recuo do heroi
-		if(!GroundBehindHero.holdsAShot()){
+		if(!GroundBehindHero.holdsAShot() && !BlockBehindHero.hardObject()){
 			console.log("aqui3");
 			return; }
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
@@ -627,6 +639,7 @@ class Hero extends ActiveActor {
 	
 		if(control.world[this.x][this.y].eatable){
 			control.food--;
+			control.gold++;
 			control.world[this.x][this.y].hide();
 			this.show();
 		}
@@ -887,7 +900,8 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=1;
+		this.level=7;
+		this.gold = 0;
 		this.paused = false;
 		this.invisibleChairs = [];
 		this.ctx = document.getElementById("canvas1").getContext("2d");
@@ -896,6 +910,9 @@ class GameControl {
 		this.worldActive = this.createMatrix();
 		this.loadLevel(this.level);
 		this.setupEvents();
+		this.goldLabel = null;
+		this.goldLeftLabel = null;
+		this.getGoldLabel();
 	}
 	static ObjectInCanvas(x,y)
 	{
@@ -955,6 +972,7 @@ class GameControl {
 					control.invisibleChairs.push(actorK);
 				}
 			}
+			this.PrintLevel();
 	}
 	getKey() {
 		let k = control.key;
@@ -974,9 +992,28 @@ class GameControl {
 		addEventListener("keyup", this.keyUpEvent, false);
 		setInterval(this.animationEvent, 1000 / ANIMATION_EVENTS_PER_SECOND);
 	}
+
+	getGoldLabel()
+	{
+			this.goldLabel = document.getElementById("goldLabel");
+			this.goldLeftLabel = document.getElementById("goldLeftLabel");
+	}
+	printGold()
+	{
+		this.goldLabel.value = this.gold;
+		this.goldLeftLabel.value = this.food;
+	}
+
+	PrintLevel()
+	{
+			let levelLabel = document.getElementById("levelLabel");
+			levelLabel.value = this.level;
+	}
+
 	animationEvent() {
 		control.time++;
-		if(!this.paused)
+		control.printGold();
+		if(!control.paused)
 		{
 			for(let x=0 ; x < WORLD_WIDTH ; x++)
 			for(let y=0 ; y < WORLD_HEIGHT ; y++) {
@@ -1015,10 +1052,11 @@ function b1()
 }
 function b2() {
 	
-	if(control.paused = false)
+	if(control.paused == false)
 		control.paused = true;
 	else
 		control.paused = false;
 }
+
 
 
