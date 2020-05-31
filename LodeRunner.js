@@ -67,7 +67,10 @@ class PassiveActor extends Actor {
 		//tells if the object serves as a winning object
 		this.winObject = false; 
 		//tells if the object is destroyed
-		this.destroyed = false; 
+		this.destroyed = false;
+
+		// Name of the Type of actor
+		this.name = "";
 
 		//tells if the object is displayed
 		this.visible = false;
@@ -357,6 +360,7 @@ class Brick extends PassiveActor {
 		super.canShootStandingOnMe = true;
 		this.timeToRecover = 0;
 		this.regen = null;
+		this.name = "brick";
 	}
 		
 	hide() 
@@ -413,12 +417,14 @@ class Chimney extends PassiveActor {
 	constructor(x, y) { 
 		super(x, y, "chimney");
 		this.passthrough=true;
+		this.name = "chimney";
 	}
 }
 
 class Empty extends PassiveActor {
 	constructor() { super(-1, -1, "empty");
-	super.passthrough = true;	
+	super.passthrough = true;
+	this.name = "empty";	
 }
 	show() {}
 	hide() {}
@@ -430,6 +436,7 @@ class Gold extends PassiveActor {
 	super.eatable=true;
 	super.passthrough=true;
 	control.food++;
+	this.name = "gold";
 	}
 
 	// SE ISTO E CHAMADO O OURO DESAPARECE E ENTRA EM CICLO
@@ -486,6 +493,7 @@ class Ladder extends PassiveActor {
 		this.visible = false;
 		this.canShootStandingOnMe=true;
 		this.winObject = true;
+		this.name = "ladder";
 	}
 
 	/*
@@ -505,6 +513,7 @@ class Ladder extends PassiveActor {
 class Rope extends PassiveActor {
 	constructor(x, y) { super(x, y, "rope"); 
 	super.moveOnUnder=true;
+	this.name = "rope";
 	}
 }
 
@@ -513,6 +522,7 @@ class Stone extends PassiveActor {
 		super(x, y, "stone");
 		super.moveOnX=true;
 		this.canShootStandingOnMe = true;
+		this.name = "stone";
 	}
 
 	
@@ -531,6 +541,7 @@ class Boundary extends Stone {
 		this.canShootStandingOnMe=false;
 		this.hard = true;
 		this.canShootStandingOnMe = true;
+		
 	}
 
 	hardObject()
