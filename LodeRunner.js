@@ -928,7 +928,7 @@ class GameControl {
 		// Holds the number of golds in the map
 		this.food = 0;
 		// Holds the current level
-		this.level=2;
+		this.level=1;
 		// Holds the number of golds eaten
 		this.gold = 0;
 		// Holds the ladders
