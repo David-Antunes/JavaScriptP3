@@ -16,26 +16,33 @@ Lode Runner!!! HTML
 
 
 <BODY onload="onLoad()">
-<p><b>LodeRunner</b> -- David Antunes (55045), Daniel João (55797)
+<p><b>LodeRunner</b> -- David Antunes (55045), Daniel João (55797)</p>
 <FORM NAME="form1">
 	<CANVAS id="canvas1" width="504" height="272" style="border:1px solid #000000;">
 		Your browser doesn't support the HTML5 CANVAS tag.
-	</CANVAS> <p>
-	<INPUT TYPE="button" NAME="button1" VALUE="Restart" SIZE=10 OnClick="b1()">
-	<INPUT TYPE="button" NAME="button2" VALUE="Pause" SIZE=10 OnClick="b2()">
-	<img src="http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/images/gold.png">
-	<input type="text" ID = "goldLabel" NAME="GoldNumber" VALUE="0" SIZE=1 READONLY>
-	Gold Left:
-	<input type="text" ID = "goldLeftLabel" NAME="goldLeftNumber" SIZE=1 READONLY>
-	Level:
-	<input type="text" ID = "levelLabel" NAME="levelNumber" SIZE=1 READONLY>
-	of:
-	<input type="text" ID = "levelLeft" NAME="levelLeft" SIZE=1 READONLY>
-	LIFE IS GOOD:
-	<input type="text" ID = "lg" NAME="lifeLeft" SIZE=1 READONLY>
+	</CANVAS>
+	<p>
+		<img src="http://ctp.di.fct.unl.pt/miei/lap/projs/proj2020-3/files/images/gold.png">
+		<input type="text" ID = "goldLabel" NAME="GoldNumber" VALUE="0" SIZE=1 READONLY>
+		Gold Left:
+		<input type="text" ID = "goldLeftLabel" NAME="goldLeftNumber" SIZE=1 READONLY>
+		Level:
+		<input type="text" ID = "levelLabel" NAME="levelNumber" SIZE=1 READONLY>
+		of:
+		<input type="text" ID = "levelLeft" NAME="levelLeft" SIZE=1 READONLY>
+		Lives Left:
+		<input type="text" ID = "lg" NAME="lifeLeft" SIZE=1 READONLY>
+	</p>
+		
 </FORM>
 
-<FORM NAME="form2">
+<form name = "form2">
+		<INPUT TYPE="button" NAME="button1" VALUE="Restart" SIZE=10 OnClick="b1()">
+		<INPUT TYPE="button" NAME="button2" VALUE="Teleport" SIZE=10 OnClick="b2()">
+		<INPUT TYPE="button" NAME="button3" VALUE="Random Level" SIZE=10 OnClick="b3()">
+</form>
+
+<FORM NAME="form3">
 	<h1><b>Lode Runner</b></h1>
 	<p>O jogo Lode Runner é simples de jogar e combina ação em tempo real com elementos de estratégia. Estes fatores juntos tornaram-no particularmente popular.</p>
 

@@ -44,7 +44,6 @@ class Actor {
 		this.hide();
 		this.x += dx;
 		this.y += dy;
-		this.showAnimation();
 		this.show();
 	}
 }
@@ -156,15 +155,20 @@ class ActiveActor extends Actor {
 		let next = control.getPassiveObject(xx,yy);
 		
 		let currentWorldObject = control.world[this.x][this.y];
+		
 		//check if they can move
 		if(next==control.boundary){
 			return;
 		}
-		
+
+		if(dy==-1){
+
+			if(!control.world[this.x][this.y].moveOnY){
+				return;
+			}
 		//if the actor is on a vertical object and decides to move up, it only happens if the up
 		//object is a vertical path or (can be penetrated and is not destroyed)
-		if(dy==-1&&currentWorldObject.moveOnY){
-			if(!currentWorldObject.destroyed && (currentWorldObject.moveOnY || next.passthrough||next.moveOnUnder)){
+			if(!next.hardObject() && currentWorldObject != empty && !currentWorldObject.destroyed && (currentWorldObject.moveOnY || next.passthrough)){
 				this.move(dx,dy);
 			}
 			return;
@@ -219,6 +223,7 @@ class ActiveActor extends Actor {
 
 		this.collectFood(this.x + dx, this.y + dy);
 		super.move(dx,dy);
+		this.showAnimation();
 
 	}
 	show(){
@@ -266,7 +271,7 @@ class ActiveActor extends Actor {
 							
 						break;
 						case "empty":
-							if((groundBlock!= empty  && !groundBlock.passthrough))
+							if((groundBlock!= empty  && !groundBlock.moveOnUnder && !groundBlock.destroyed))
 							{
 								if(this.left()) 
 								this.imageName = name + '_runs_left';
@@ -331,10 +336,12 @@ class Brick extends PassiveActor {
 		this.hard = true;
 		super.canShootStandingOnMe = true;
 		this.timeToRecover = 0;
+		this.regen = null;
 	}
 		
 	hide() 
 	{
+		clearTimeout = this.regen;
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
 	}
@@ -353,22 +360,25 @@ class Brick extends PassiveActor {
 		this.passthrough = true;
 		super.moveOnY = true;
 		super.moveOnX = false;
+		this.canShootStandingOnMe = false;
 		
-		setTimeout(()=>{
-			if(control.world[this.x][this.y]==this){
+		this.regen = setTimeout(()=>{
+
 				let active = control.worldActive[this.x][this.y];
+
 				if(active!=empty&&!active.good){
 					active.reborn();
 				}else if(active!=empty && active.good)
 					control.gameLost();
+
 				this.destroyed = false;
 				this.imageName = "brick";
 				this.passthrough = false;
 				this.moveOnY = false;
 				this.moveOnX = true;
 				this.hard = true;
+				this.canShootStandingOnMe = true;
 				this.show();
-			}
 		},9000);
 	
 	}
@@ -406,7 +416,6 @@ class Gold extends PassiveActor {
 	eaten()
 	{
 		super.hide();
-		this.timeToDrop = 128;
 	}
 
 	// E FEITA A PERGUNTA AO OURO SE PODE VOLTAR AO MAPA
@@ -500,6 +509,13 @@ class Boundary extends Stone {
 		super(-1,-1, "empty");
 		this.moveOnX = false;
 		this.canShootStandingOnMe=false;
+		this.hard = true;
+		this.canShootStandingOnMe = true;
+	}
+
+	hardObject()
+	{
+		return this.hard;
 	}
 
 	hide() {}
@@ -517,7 +533,6 @@ class Hero extends ActiveActor {
 		this.direction = [-1,0];
 		this.eatable = true;
 		this.gold = 0;
-		this.life = 3;
 	}
 
 	animation() {
@@ -544,12 +559,6 @@ class Hero extends ActiveActor {
 			super.animation(dx,dy);
 		}
 	}
-		
-	eaten()
-	{
-		alert("U LOST >:(")
-	}
-
 	
 	shoot()
 	{
@@ -561,19 +570,28 @@ class Hero extends ActiveActor {
 		let GroundBehindHero = control.getPassiveObject(this.x - this.direction[0], this.y + 1);
 
 		// Se o chao atras nao aguenta com o recuo do heroi
-		if(!GroundBehindHero.getCanShootStandingOnMe() && !BlockBehindHero.getCanShootStandingOnMe()){
-
-			return; }
+		if(!GroundBehindHero.getCanShootStandingOnMe()){
+			return; 
+		}
 		// Se o bloco a frente aguenta com um tiro e nao e passthrough o heroi nao pode disparar
 		else if(BlockFrontHero.hardObject()){
-
-			return; }
+			return; 
+		}
 		// Se o bloco a destruir nao for destrutivel o heroi nao dispara
-		else if(!BlockToShoot.destroyable){
-
-			return; }
+		else if(!BlockToShoot.destroyable)
+		{
+			return; 
+		}
 		else
 		{
+			//Move-se no sentido contrario
+			
+			if(!BlockBehindHero.hardObject())
+			{
+				super.move(-this.direction[0], 0);
+				// Colocar o sentido de novo
+				this.direction[0] = -this.direction[0];
+			}
 			if(super.left())
 			{
 				this.imageName = this.name + "_shoots_left";
@@ -584,14 +602,7 @@ class Hero extends ActiveActor {
 			}
 
 			super.show();
-			//Move-se no sentido contrario
 
-			if(!BlockBehindHero.hardObject())
-			{
-				super.move(-this.direction[0], 0);
-				// Colocar o sentido de novo
-				this.direction[0] = -this.direction[0];
-			}
 			BlockToShoot.destroyBlock();
 		}
 	}
@@ -688,18 +699,28 @@ class Robot extends ActiveActor {
 
 		if(0 < this.timeToDropFood)
 			this.timeToDropFood--;
-		else if(!this.tempFood.CanIDropU(this.x,this.y))
-			this.timeToDropFood = rand(30);
+		else if(!this.tempFood.CanIDropU(this.x,this.y + 1))
+			this.timeToDropFood = rand(15);
 		else
 		{
 			this.tempFood.drop(this.x,this.y);
+			this.show();
 			this.tempFood = null;
 		}
 	}
 
 	ForceDropFood()
 	{
-		this.tempFood.ForceDrop();
+		let currentBlock = control.getPassiveObject(this.x, this.y);
+		let aboveBlock = control.getPassiveObject(this.x, this.y + 1);
+
+		if(currentBlock.destroyed && aboveBlock != empty)
+		{
+			this.tempFood.ForceDrop();
+		}else
+		{
+			this.tempFood.drop(this.x, this.y - 1);
+		}
 		this.tempFood = null;
 		this.timeToDropFood == 0;
 	}
@@ -772,7 +793,7 @@ class Robot extends ActiveActor {
 		}
 	}
 	resetTimeTodropGold(){
-		this.timeToDropFood = rand(30);
+		this.timeToDropFood = rand(10);
 	}
 
 	// TENTA COMER
@@ -790,7 +811,7 @@ class Robot extends ActiveActor {
 			//GUARDA A COMIDA
 			this.tempFood = nextBlock;
 			this.tempFood.eaten();
-			this.timeToDropFood = 30;
+			this.timeToDropFood = 15;
 			this.show();
 			this.resetTimeTodropGold();
 			}
@@ -806,13 +827,12 @@ class GameControl {
 		this.key = 0;
 		this.time = 0;
 		this.food = 0;
-		this.level=2;
+		this.level=1;
 		this.gold = 0;
-		this.paused = false;
 		this.invisibleChairs = [];
 		this.boundary = new Boundary();
 		this.gameTick = null;
-		control.hearts = 2;
+		control.hearts = 3;
 
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -824,22 +844,7 @@ class GameControl {
 		this.goldLeftLabel = null;
 		this.getGoldLabel();
 	}
-	static ObjectInCanvas(x,y)
-	{
-		if(x < 0 || x >= WORLD_WIDTH)
-			return false;
-		if(y < 0 || y >= WORLD_HEIGHT)
-			return false;
-		
-		return true;
-	}
-	getObject(x,y)
-	{
-		if(!GameControl.ObjectInCanvas(x,y))
-			return new WorldBorder();
-		else
-			return control.worldActive[x][y] != empty ? control.worldActive[x][y] : control.world[x][y];
-	}
+	
 	createMatrix() { // stored by columns
 		let matrix = new Array(WORLD_WIDTH);
 		for( let x = 0 ; x < WORLD_WIDTH ; x++ ) {
@@ -869,8 +874,6 @@ class GameControl {
 		this.worldActive = this.createMatrix();
 	}
 	loadLevel(level) {
-		this.cleanMatrixes();
-		this.createWorlds();
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
@@ -968,18 +971,24 @@ class GameControl {
 		control.lost = false;
 		control.hearts--;
 		control.food = 0;
-		if(control.hearts <0)
+		if(control.hearts <=0)
 		{
 			alert("Game Over!");
 			location.reload();
 		} else
 		{
-			mesg(`TRY AGAIN! ONLY ${hero.life} LEFT! MAY GOB BE WITH YOU`);
-			this.loadLevel(control.level);
+			mesg(`TRY AGAIN! ONLY ${control.hearts} LEFT! MAY GOD BE WITH YOU`);
+			this.reloadGame();
 		}
 	}
 
+	reloadGame()
+	{
+		this.cleanMatrixes();
+		this.createWorlds();
+		this.loadLevel(control.level);
 
+	}
 
 	checkGoldCollected()
 	{
@@ -998,8 +1007,7 @@ class GameControl {
 			this.gold += hero.gold;
 			control.won = false;
 			hero.hide();
-			control.cleanMatrixes();
-			control.createWorlds();
+
 			control.level++;
 			if(control.level>MAPS.length)
 			{
@@ -1007,7 +1015,7 @@ class GameControl {
 				control.level = 1;
 				control.hearts = 2;
 			}
-			this.loadLevel(control.level);
+			this.reloadGame();
 		}
 
 		checkWinCondition()
@@ -1028,8 +1036,7 @@ class GameControl {
 	animationEvent() {
 		control.time++;
 		control.printGold();
-		if(!control.paused)
-		{
+
 			for(let x=0 ; x < WORLD_WIDTH && !control.stop; x++)
 			for(let y=0 ; y < WORLD_HEIGHT && !control.stop; y++) {
 				let a = control.worldActive[x][y];
@@ -1038,8 +1045,7 @@ class GameControl {
 					a.animation();
 				}
 			}
-
-		}
+			
 		control.checkGoldCollected();
 
 		if(control.checkWinCondition())
@@ -1065,17 +1071,29 @@ function onLoad() {
 
 function b1() 
 { 
-	mesg("Level Restarted!"); 
+	mesg("Level Restarted!");
+	control.food = 0;
 	control.cleanMatrixes();
 	control.createWorlds();
 	control.loadLevel(control.level);
 }
 function b2() {
-	
-	if(control.paused == false)
-		control.paused = true;
-	else
-		control.paused = false;
+	hero.hide();
+	hero.findRandomPos(hero);
+	hero.show();
+}
+
+function b3() {
+	let newlevel = rand(MAPS.length);
+	newlevel++; // To never be level 0
+
+	// Resets all stats
+	control.hearts = 3;
+	control.food = 0;
+	control.gold = 0;
+
+	control.level = newlevel;
+	control.reloadGame();
 }
 
 
