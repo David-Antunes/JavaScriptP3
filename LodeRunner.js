@@ -812,6 +812,7 @@ class GameControl {
 		this.invisibleChairs = [];
 		this.boundary = new Boundary();
 		this.gameTick = null;
+		control.hearts = 2;
 
 		this.ctx = document.getElementById("canvas1").getContext("2d");
 		empty = new Empty();	// only one empty actor needed
@@ -958,23 +959,22 @@ class GameControl {
 
 	showLife(){
 		let lg = document.getElementById('lg');
-		lg.value = hero.life;
+		lg.value = control.hearts;
 	}
 
 	gameOver()
 	{
 		control.stop = false;
 		control.lost = false;
-		hero.hearts--;
+		control.hearts--;
 		control.food = 0;
-		if(hero.hearts <0)
+		if(control.hearts <0)
 		{
-			alert("GAME OVER");
-			control.level = 1;
-			this.loadLevel(control.level);
-			control.gold = 0;
+			alert("Game Over!");
+			location.reload();
 		} else
 		{
+			mesg(`TRY AGAIN! ONLY ${hero.life} LEFT! MAY GOB BE WITH YOU`);
 			this.loadLevel(control.level);
 		}
 	}
@@ -1004,9 +1004,8 @@ class GameControl {
 			if(control.level>MAPS.length)
 			{
 				alert("Game Won!");
-				location.reload();
-				control.stop = true;
-				control.paused = true;
+				control.level = 1;
+				control.hearts = 2;
 			}
 			this.loadLevel(control.level);
 		}
