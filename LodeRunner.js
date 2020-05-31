@@ -33,6 +33,7 @@ class Actor {
 		this.imageName = imageName;
 		this.show();
 		this.name = "";
+		this.visible=true;
 	}
 	
 	draw(x, y) {
@@ -57,7 +58,6 @@ class PassiveActor extends Actor {
 		this.eatable = false;//tells if this object can be eaten, if it can serve as gold
 		this.passthrough = false;// tells if this object can be passed through in any direction, example: chimey, destroied blocks,  food
 		this.destroyable = false; //tell is the object can be destroied in the game
-		this.visible=true;
 		this.winObject = false;
 		//tells if the active actor can stretch upwards to reach this object, 
 		//example: active actors can reach ropes when they are 1 key distance above them,
@@ -79,10 +79,12 @@ class PassiveActor extends Actor {
 	show() {
 		control.world[this.x][this.y] = this;
 		this.draw(this.x, this.y);
+		this.visible=true;
 	}
 	hide() {
 		control.world[this.x][this.y] = empty;
 		empty.draw(this.x, this.y);
+		this.visible=false;
 	}
 
 	animation(){
@@ -222,10 +224,12 @@ class ActiveActor extends Actor {
 	show(){
 		control.worldActive[this.x][this.y] = this;
 		this.draw(this.x, this.y);
+		this.visible=true;
 	}
 	hide() {
 		control.worldActive[this.x][this.y] = empty;
 		control.world[this.x][this.y].draw(this.x, this.y);
+		this.visible=false;
 	}
 
 
@@ -758,10 +762,8 @@ class Robot extends ActiveActor {
 		}
 
 		let [dx, dy] = this.getHeroDir();
-		
-		if((dx != 0 && dy == 0) || (dy != 0 && dy == 0))
-			super.animation(dx,dy);
-		else if(!this.alt){
+
+		if(!this.alt){
 			super.animation(dx,0);
 			this.alt=!this.alt;
 		}else{
@@ -867,6 +869,7 @@ class GameControl {
 	}
 	loadLevel(level) {
 		this.cleanMatrixes();
+		this.createWorlds();
 		if( level < 1 || level > MAPS.length )
 			fatalError("Invalid level " + level)
 		let map = MAPS[level-1];  // -1 because levels start at 1
@@ -954,14 +957,14 @@ class GameControl {
 	}
 
 	showLife(){
-		let lifeEle = document.getElementById('lg');
+		let lg = document.getElementById('lg');
 		lg.value = hero.life;
 	}
 
 	gameOver()
 	{
 		control.stop = false;
-		control.paused = false;
+		control.lost = false;
 		hero.hearts--;
 		control.food = 0;
 		if(hero.hearts <0)
@@ -982,10 +985,9 @@ class GameControl {
 	{
 		if(control.food==0 && !control.won){
 			let size = control.invisibleChairs.length;
-			let arr = control.invisibleChairs;
 
 			for (let index = 0; index < size; index++) {
-				arr[index].makeVisible();
+				control.invisibleChairs[index].makeVisible();
 			}
 			control.won = true;
 		}
@@ -1013,7 +1015,6 @@ class GameControl {
 		{
 			if(hero.y == 0 && this.getPassiveObject(hero.x,hero.y).winObject && control.food == 0)
 			{
-				this.levelWon();
 				return true;
 			}
 			return false;
@@ -1039,22 +1040,12 @@ class GameControl {
 				}
 			}
 
-			control.checkGoldCollected();
-
-			if(control.checkWinCondition())
-			{
-				control.levelWon();
-			}
-
-			if(control.lost)
-				control.gameOver();
 		}
 		control.checkGoldCollected();
 
 		if(control.checkWinCondition())
-		{
 			control.levelWon();
-		} else if(control.lost)
+		 else if(control.lost)
 			control.gameOver();
 	}
 	keyDownEvent(k) {
