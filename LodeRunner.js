@@ -32,6 +32,7 @@ class Actor {
 		this.y = y;
 		this.imageName = imageName;
 		this.show();
+		// Name of the Type of actor
 		this.name = "";
 		this.visible=true;
 	}
@@ -51,17 +52,26 @@ class Actor {
 class PassiveActor extends Actor {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
-		this.moveOnX= false; //tells if the object serves as a horizontal path
-		this.moveOnY=false; //tell is the object serves as a vertical path
-		this.moveOnUnder=false; //tells if the active actor can move horizontally inside the object
-		this.eatable = false;//tells if this object can be eaten, if it can serve as gold
-		this.passthrough = false;// tells if this object can be passed through in any direction, example: chimey, destroied blocks,  food
-		this.destroyable = false; //tell is the object can be destroied in the game
-		this.winObject = false;
-		//tells if the active actor can stretch upwards to reach this object, 
-		//example: active actors can reach ropes when they are 1 key distance above them,
-		this.name =imageName;
-		this.destroyed = false;
+		//tells if the object serves as a horizontal path
+		this.moveOnX= false; 
+		//tell is the object serves as a vertical path
+		this.moveOnY=false; 
+		//tells if the active actor can move horizontally inside the object
+		this.moveOnUnder=false; 
+		//tells if this object can be eaten, if it can serve as gold
+		this.eatable = false;
+		// tells if this object can be passed through in any direction, example: chimey, destroyed blocks,  food
+		this.passthrough = false;
+		//tell is the object can be destroyed in the game
+		this.destroyable = false;
+		//tells if the object serves as a winning object
+		this.winObject = false; 
+		//tells if the object is destroyed
+		this.destroyed = false; 
+
+		//tells if the object is displayed
+		this.visible = false;
+
 		//tell if this actor allows the actor above him to shoot
 		this.canShootStandingOnMe = false;
 	}
@@ -70,7 +80,7 @@ class PassiveActor extends Actor {
 	getCanShootStandingOnMe() {
 		return this.canShootStandingOnMe;
 	}
-	//it is a solid object
+	//Returns if the object is an solidObject aka cant be passthrough 
 	hardObject() {
 		return false;
 	}
@@ -95,8 +105,12 @@ class ActiveActor extends Actor {
 	constructor(x, y, imageName) {
 		super(x, y, imageName);
 		this.time = 0;	// timestamp used in the control of the animations
+
+		//Tells if the actor is a good actor or not
 		this.good = false;
-		this.direction = [0,0]; //vetor de direção do ator
+
+		//Tells which direction the actor is facing
+		this.direction = [0,0]; 
 	}
 	/**
 	 * finds a random place in the map to place the object obj
@@ -120,19 +134,23 @@ class ActiveActor extends Actor {
 		newA.y = yy;
 		newA.show();
 	}
+
 	//responsible for the actor to pick up food
 	collectFood(){}
+
 	/**
 	 * Responsible to make the actor fall one step
-	 * actor only falls one move down if they are on a passthrou (empty object) and down is also an empty object
+	 * actor only falls one move down if they are on a passthrough (empty object) 
+	 * and down is also an empty object or if can be movedOnUnder
 	 */
 	actorFall(){
+
 		let res= false;
 		let yy = this.y+1;
+		
+		
 		let downActiveActor = control.getActiveObject(this.x,yy);
-		if(downActiveActor==control.boundary){
-			res=false;
-		}else{
+
 			let  downObject = control.getPassiveObject(this.x,yy);
 			let passiveBlock = control.getPassiveObject(this.x,this.y);
 			if(downActiveActor!=empty){
@@ -144,7 +162,7 @@ class ActiveActor extends Actor {
 					res = true;
 				}
 			}
-		}
+		
 		return res;
 	}
 
@@ -154,7 +172,7 @@ class ActiveActor extends Actor {
 
 		let next = control.getPassiveObject(xx,yy);
 		
-		let currentWorldObject = control.world[this.x][this.y];
+		let currentBlock = control.getPassiveObject(this.x,this.y);
 		
 		//check if they can move
 		if(next==control.boundary){
@@ -163,18 +181,20 @@ class ActiveActor extends Actor {
 
 		if(dy==-1){
 
-			if(!control.world[this.x][this.y].moveOnY){
+			//If the current block lets you move vertically
+			if(!currentBlock.moveOnY){
 				return;
 			}
 		//if the actor is on a vertical object and decides to move up, it only happens if the up
 		//object is a vertical path or (can be penetrated and is not destroyed)
-			if(!next.hardObject() && currentWorldObject != empty && !currentWorldObject.destroyed && (currentWorldObject.moveOnY || next.passthrough)){
+			if(!next.hardObject() && currentBlock != empty && !currentBlock.destroyed 
+			&& (currentBlock.moveOnY || next.passthrough)){
 				this.move(dx,dy);
 			}
 			return;
 		}
 
-		//if the next object can be penetrated
+		//if the next object can be passthroughed
 		if (next.passthrough){
 			if(dy==0){
 				this.move(dx,dy);
@@ -202,7 +222,7 @@ class ActiveActor extends Actor {
 		return false;
 	}
 	/*
-		tells if the active actor is going right
+		tells if the active actor is going up
 	*/
 	up()
 	{
@@ -211,7 +231,7 @@ class ActiveActor extends Actor {
 		return false;
 	}
 	/*
-		moves the actor
+		moves the actor and updates its direction
 	*/
 	move(dx, dy) {
 		if(dx != 0){
